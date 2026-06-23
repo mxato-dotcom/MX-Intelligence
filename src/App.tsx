@@ -3,7 +3,9 @@ import { AuthGuard } from '@/components/auth/AuthGuard'
 import { GuestGuard } from '@/components/auth/GuestGuard'
 import { AppShell } from '@/components/layout/AppShell'
 import { ROUTES } from '@/lib/constants'
+import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
+import { CreateArticlePage } from '@/pages/CreateArticlePage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { SignUpPage } from '@/pages/SignUpPage'
@@ -22,6 +24,8 @@ export function App() {
           <Route element={<AppShell />}>
             <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
             <Route path={ROUTES.ARTICLES} element={<ArticlesPage />} />
+            <Route path={ROUTES.ARTICLES_NEW} element={<CreateArticlePage />} />
+            <Route path="/articles/:id" element={<ArticleDetailPage />} />
             <Route path={ROUTES.VIDEOS} element={<VideosPage />} />
           </Route>
         </Route>

@@ -10,6 +10,13 @@
   gap: var(--space-sm);
 }
 
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
 .title {
   font-size: 28px;
   font-weight: 700;
@@ -20,6 +27,10 @@
   color: var(--color-text-muted);
   font-size: 15px;
   max-width: 640px;
+}
+
+.actions {
+  flex-shrink: 0;
 }
 
 .body {
