@@ -1,68 +1,141 @@
 # MX Intelligence
 
-Personal intelligence platform — daily briefs, curated articles, and videos.
+Personal Intelligence Platform built with React, TypeScript, Supabase, and modern web technologies.
 
-## Stack
+## Overview
 
-- **Frontend:** React 18, Vite, TypeScript
-- **Backend:** Supabase (Auth, Postgres, RLS)
-- **UI:** Modern dark theme
+MX Intelligence is a personal intelligence workspace designed to organize and consume high-value information through articles, videos, and AI-powered daily briefings.
+
+The platform helps users build a personalized knowledge hub and stay informed with curated content.
+
+---
+
+## Features
+
+### Phase 1 — Authentication
+
+* User registration
+* Secure login
+* Email verification
+* Protected routes
+* User profiles
+* Supabase authentication
+
+### Phase 2 — Articles System
+
+* Create articles
+* Browse articles
+* Article detail pages
+* Secure article management
+* Row Level Security (RLS)
+* Supabase database integration
+
+### Upcoming Features
+
+#### Phase 3 — Videos System
+
+* Video catalog
+* Video detail pages
+* YouTube integration
+* Video categories
+
+#### Phase 4 — Daily Brief
+
+* Personalized daily briefing
+* Content aggregation
+* Reading progress
+* Highlights and recommendations
+
+#### Future Roadmap
+
+* AI summaries
+* Smart recommendations
+* Knowledge graph
+* Bookmarks
+* Search engine
+* Analytics dashboard
+
+---
+
+## Technology Stack
+
+### Frontend
+
+* React
+* TypeScript
+* Vite
+* CSS Modules
+
+### Backend
+
+* Supabase
+* PostgreSQL
+* Row Level Security (RLS)
+
+### Development Tools
+
+* Git
+* GitHub
+* Cursor
+
+---
+
+## Project Structure
+
+src/
+├── components/
+├── pages/
+├── services/
+├── hooks/
+├── contexts/
+├── lib/
+└── types/
+
+supabase/
+└── migrations/
+
+---
+
+## Installation
+
+Clone the repository:
+
+git clone https://github.com/mxato-dotcom/MX-Intelligence.git
+
+Install dependencies:
+
+npm install
+
+Start development server:
+
+npm run dev
+
+---
 
 ## Status
 
-**Phase 1 complete** — Supabase Auth with email sign up/in, protected routes, and profile creation.
+Current Version: MVP
 
-## Quick start
+Completed:
 
-```bash
-# Install dependencies
-npm install
+* Authentication System
+* Articles System
 
-# Copy environment template and add your Supabase credentials
-cp .env.example .env
+In Progress:
 
-# Apply database migration in Supabase SQL Editor (see supabase/migrations/001_profiles.sql)
+* Videos System
 
-# Start development server (http://localhost:5173)
-npm run dev
-```
+---
 
-On Windows PowerShell:
+## Author
 
-```powershell
-npm install
-Copy-Item .env.example .env
-npm run dev
-```
+Mohamed Ahmed
 
-## Scripts
+GitHub:
+https://github.com/mxato-dotcom
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | Typecheck + production build |
-| `npm run preview` | Preview production build |
+---
 
-## Documentation
+## License
 
-| Document | Description |
-|----------|-------------|
-| [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) | Overview, folder structure, pages, components |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, auth flow, state management |
-| [docs/DATABASE.md](docs/DATABASE.md) | Schema, RLS policies, migrations |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Phased development timeline |
-
-## Planned Routes
-
-| Route | Page |
-|-------|------|
-| `/login` | Login |
-| `/signup` | Sign up |
-| `/` | Daily Brief |
-| `/articles` | Articles |
-| `/videos` | Videos |
-
-## Next Steps
-
-1. Phase 2: Dark UI polish and layout components
-2. See [docs/ROADMAP.md](docs/ROADMAP.md) for full timeline
+MIT License
