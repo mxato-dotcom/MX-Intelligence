@@ -1,0 +1,31 @@
+.newButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.newButton:hover {
+  background: var(--color-accent-hover);
+  color: var(--color-text-primary);
+}
+
+.stateBox {
+  padding: var(--space-lg);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.stateBoxError {
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}

@@ -6,9 +6,11 @@ import { ROUTES } from '@/lib/constants'
 import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
 import { CreateArticlePage } from '@/pages/CreateArticlePage'
+import { CreateVideoPage } from '@/pages/CreateVideoPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { SignUpPage } from '@/pages/SignUpPage'
+import { VideoDetailPage } from '@/pages/VideoDetailPage'
 import { VideosPage } from '@/pages/VideosPage'
 
 export function App() {
@@ -27,6 +29,8 @@ export function App() {
             <Route path={ROUTES.ARTICLES_NEW} element={<CreateArticlePage />} />
             <Route path="/articles/:id" element={<ArticleDetailPage />} />
             <Route path={ROUTES.VIDEOS} element={<VideosPage />} />
+            <Route path={ROUTES.VIDEOS_NEW} element={<CreateVideoPage />} />
+            <Route path="/videos/:id" element={<VideoDetailPage />} />
           </Route>
         </Route>
 
