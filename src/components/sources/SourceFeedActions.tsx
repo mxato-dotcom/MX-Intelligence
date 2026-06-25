@@ -5,9 +5,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
 import type { NormalizedIntelligenceArticle } from '@/intelligence/types'
 import { mapRssError } from '@/lib/rssErrors'
-import { supportsRssFeed } from '@/lib/sourceType'
-import * as collectorService from '@/services/collectorService'
-import * as rssService from '@/services/rssService'
+import { isConnectorPreviewAvailable } from '@/lib/sourceType'
+import * as connectorService from '@/services/connectorService'
 import type { FeedImportResult } from '@/types/rss'
 import type { Source } from '@/types/source'
 import styles from './SourceFeedActions.module.css'
@@ -18,12 +17,13 @@ interface SourceFeedActionsProps {
   compact?: boolean
 }
 
-const RSS_ONLY_MESSAGE = 'Preview and import require a source with type RSS.'
+const CONNECTOR_UNAVAILABLE_MESSAGE =
+  'Preview and import are not available for this source type yet.'
 
 export function SourceFeedActions({ source, onSourceUpdated, compact = false }: SourceFeedActionsProps) {
   const { user } = useAuth()
   const { notifyDataRefresh } = useDataRefresh()
-  const canUseRssFeed = supportsRssFeed(source.source_type)
+  const canUseConnector = isConnectorPreviewAvailable(source.source_type)
 
   const [isValidating, setIsValidating] = useState(false)
   const [isHealthChecking, setIsHealthChecking] = useState(false)
@@ -41,7 +41,7 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
     setActionMessage(null)
 
     try {
-      const result = await collectorService.validateSource(source)
+      const result = await connectorService.validateSource(source)
       setActionSuccess(result.success)
       setActionMessage(result.message)
     } catch (err) {
@@ -57,7 +57,7 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
     setActionMessage(null)
 
     try {
-      const result = await collectorService.runHealthCheck(source)
+      const result = await connectorService.runHealthCheck(source)
       setActionSuccess(result.success)
       setActionMessage(result.message)
     } catch (err) {
@@ -69,9 +69,9 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
   }
 
   const handlePreviewFeed = async () => {
-    if (!canUseRssFeed) {
+    if (!canUseConnector) {
       setActionSuccess(false)
-      setActionMessage(RSS_ONLY_MESSAGE)
+      setActionMessage(CONNECTOR_UNAVAILABLE_MESSAGE)
       return
     }
 
@@ -81,7 +81,7 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
     setImportStage('Fetching feed via Edge Function…')
 
     try {
-      const result = await rssService.previewFeed(source)
+      const result = await connectorService.previewFeed(source)
 
       if (!result.success) {
         setActionSuccess(false)
@@ -106,9 +106,9 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
     selectedHashes?: string[],
     cachedItems?: NormalizedIntelligenceArticle[],
   ) => {
-    if (!canUseRssFeed) {
+    if (!canUseConnector) {
       setActionSuccess(false)
-      setActionMessage(RSS_ONLY_MESSAGE)
+      setActionMessage(CONNECTOR_UNAVAILABLE_MESSAGE)
       return
     }
 
@@ -126,13 +126,13 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
       setImportStage('Importing articles and skipping duplicates…')
 
       const result = cachedItems
-        ? await rssService.importFeed({
+        ? await connectorService.importFeed({
             source,
             userId: user.id,
             selectedHashes,
             items: cachedItems,
           })
-        : await rssService.importArticlesFromFeed(source, user.id, selectedHashes)
+        : await connectorService.importArticlesFromFeed(source, user.id, selectedHashes)
 
       setImportResult(result)
       setActionSuccess(result.imported > 0 || result.skipped > 0)
@@ -196,8 +196,8 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
         </button>
       </div>
 
-      {!canUseRssFeed && (
-        <p className={styles.hint}>{RSS_ONLY_MESSAGE}</p>
+      {!canUseConnector && (
+        <p className={styles.hint}>{CONNECTOR_UNAVAILABLE_MESSAGE}</p>
       )}
 
       {(isPreviewing || isImporting) && importStage && (

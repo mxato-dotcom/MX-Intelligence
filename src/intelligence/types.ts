@@ -16,6 +16,20 @@ export interface NormalizedIntelligenceArticle {
 
 export type ConnectorSyncStatus = 'never' | 'syncing' | 'completed' | 'failed'
 
+export interface ConnectorValidationResult {
+  success: boolean
+  message: string
+}
+
+export type ConnectorHealthStatus = 'healthy' | 'degraded' | 'unhealthy'
+
+export interface ConnectorHealthResult {
+  success: boolean
+  status: ConnectorHealthStatus
+  message: string
+  latencyMs: number
+}
+
 export interface ConnectorPreviewResult {
   success: boolean
   items: NormalizedIntelligenceArticle[]
