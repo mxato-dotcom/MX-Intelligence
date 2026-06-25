@@ -1,0 +1,86 @@
+.card {
+  display: block;
+  padding: var(--space-lg);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg-elevated);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badgeActive {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: var(--color-text-primary);
+}
+
+.badgeInactive {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.metaItem {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.metaLabel {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.trustScore {
+  margin-top: var(--space-sm);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.trustValue {
+  color: var(--color-accent-hover);
+  font-weight: 600;
+}

@@ -1,0 +1,10 @@
+.backLink {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--color-accent-hover);
+}
