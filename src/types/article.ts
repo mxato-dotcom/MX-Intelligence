@@ -6,6 +6,7 @@ export interface Article {
   content: string
   summary: string
   category: string
+  image_url: string | null
   published_at: string
   created_at: string
   created_by: string
@@ -18,4 +19,6 @@ export interface CreateArticleInput {
   content: string
   summary: string
   category: string
+  image_url?: string | null
+  published_at?: string
 }

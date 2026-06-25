@@ -4,6 +4,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { useSources } from '@/hooks/useSources'
 import { ROUTES } from '@/lib/constants'
 import type { Source } from '@/types/source'
+import { buildPlaceholderSyncState, type SourceSyncState } from '@/types/sourceSync'
 import styles from './SourcesPage.module.css'
 
 function computeStats(sources: Source[]) {
@@ -18,9 +19,16 @@ function computeStats(sources: Source[]) {
   return { total, enabled, disabled, avgTrust }
 }
 
+function buildSyncStateMap(sources: Source[]): Record<string, SourceSyncState> {
+  return Object.fromEntries(
+    sources.map((source) => [source.id, buildPlaceholderSyncState(source)]),
+  )
+}
+
 export function SourcesPage() {
   const { sources, isLoading, error } = useSources()
   const stats = computeStats(sources)
+  const syncStates = buildSyncStateMap(sources)
 
   return (
     <PageContainer
@@ -66,7 +74,7 @@ export function SourcesPage() {
               No sources yet. <Link to={ROUTES.SOURCES_NEW}>Add your first source</Link>.
             </div>
           ) : (
-            <SourceList sources={sources} />
+            <SourceList sources={sources} syncStates={syncStates} />
           )}
         </>
       )}

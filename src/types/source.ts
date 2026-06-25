@@ -51,6 +51,7 @@ export interface Source {
   update_interval: string
   trust_score: number
   last_sync_at: string | null
+  items_collected: number | null
 }
 
 export interface CreateSourceInput {

@@ -1,0 +1,57 @@
+import type { NormalizedIntelligenceArticle } from '@/intelligence/types'
+import type { Source } from '@/types/source'
+
+export interface ParsedRSSItem {
+  title: string
+  url: string
+  summary: string
+  content: string
+  image: string | null
+  author: string | null
+  published_at: string
+  language: string | null
+  external_id: string | null
+}
+
+export interface ParsedRSSFeed {
+  title: string
+  language: string | null
+  items: ParsedRSSItem[]
+}
+
+export interface FeedPreviewResult {
+  success: boolean
+  items: NormalizedIntelligenceArticle[]
+  downloaded: number
+  error?: string
+  durationMs: number
+}
+
+export interface FeedImportResult {
+  downloaded: number
+  imported: number
+  skipped: number
+  failed: number
+  durationMs: number
+}
+
+export interface FeedImportOptions {
+  source: Source
+  userId: string
+  selectedHashes?: string[]
+  items?: NormalizedIntelligenceArticle[]
+}
+
+export interface FetchRssSuccessResponse {
+  success: true
+  xml: string
+  status: number
+}
+
+export interface FetchRssErrorResponse {
+  success: false
+  error: string
+  status?: number
+}
+
+export type FetchRssResponse = FetchRssSuccessResponse | FetchRssErrorResponse

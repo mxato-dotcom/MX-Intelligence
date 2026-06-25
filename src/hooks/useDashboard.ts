@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useDataRefresh } from '@/contexts/DataRefreshContext'
 import type { Article } from '@/types/article'
 import type { DailyBrief } from '@/types/brief'
 import type { Video } from '@/types/video'
@@ -14,6 +15,7 @@ export interface DashboardData {
 }
 
 export function useDashboard() {
+  const { refreshToken } = useDataRefresh()
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +64,7 @@ export function useDashboard() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [refreshToken])
 
   return { data, isLoading, error }
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { SourceConnectorPanel } from '@/components/sources/SourceConnectorPanel'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useSource } from '@/hooks/useSource'
 import { formatDate } from '@/lib/format'
@@ -134,6 +135,8 @@ export function SourceDetailPage() {
             </a>
           </p>
         )}
+
+        <SourceConnectorPanel source={source} onSyncComplete={refetch} />
 
         {actionError && (
           <div className={`${styles.stateBox} ${styles.stateBoxError}`} role="alert">

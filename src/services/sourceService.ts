@@ -100,3 +100,40 @@ export async function toggleSourceActive(id: string, active: boolean): Promise<S
 
   return data as Source
 }
+
+export async function updateSourceAfterImport(id: string, importedCount: number): Promise<Source> {
+  const existing = await getSourceById(id)
+  const currentItems = existing?.items_collected ?? 0
+
+  const { data, error } = await supabase
+    .from('sources')
+    .update({
+      last_sync_at: new Date().toISOString(),
+      items_collected: currentItems + importedCount,
+      status: 'enabled',
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data as Source
+}
+
+export async function updateSourceLastSync(id: string): Promise<Source> {
+  const { data, error } = await supabase
+    .from('sources')
+    .update({ last_sync_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data as Source
+}

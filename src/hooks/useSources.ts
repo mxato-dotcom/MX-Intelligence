@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useDataRefresh } from '@/contexts/DataRefreshContext'
 import * as sourceService from '@/services/sourceService'
 import type { Source } from '@/types/source'
 
 export function useSources() {
+  const { refreshToken } = useDataRefresh()
   const [sources, setSources] = useState<Source[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -23,7 +25,7 @@ export function useSources() {
 
   useEffect(() => {
     refetch()
-  }, [refetch])
+  }, [refetch, refreshToken])
 
   return { sources, isLoading, error, refetch }
 }
