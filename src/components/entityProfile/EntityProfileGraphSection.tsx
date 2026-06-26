@@ -1,11 +1,6 @@
-import { lazy, Suspense } from 'react'
 import { GraphExplorer } from '@/components/graph/GraphExplorer'
 import type { GraphData } from '@/types/graph'
 import styles from './EntityProfileSections.module.css'
-
-const LazyGraphExplorer = lazy(async () => ({
-  default: GraphExplorer,
-}))
 
 interface EntityProfileGraphSectionProps {
   graphData: GraphData
@@ -22,9 +17,15 @@ export function EntityProfileGraphSection({
       {graphData.nodes.length === 0 ? (
         <p className={styles.empty}>No graph relationships available for this entity.</p>
       ) : (
-        <Suspense fallback={<p className={styles.empty}>Loading relationship graph…</p>}>
-          <LazyGraphExplorer graph={graphData} initialNodeId={centerNodeId} compact />
-        </Suspense>
+        <GraphExplorer
+          graph={graphData}
+          centerNodeId={centerNodeId}
+          initialNodeId={centerNodeId}
+          compact
+          maxNodes={60}
+          maxEdges={120}
+          showListPanels={false}
+        />
       )}
     </section>
   )

@@ -1,3 +1,28 @@
+.explorerRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.compactRoot {
+  gap: var(--space-sm);
+}
+
+.truncatedNotice {
+  padding: 10px 12px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md);
+  background: rgba(245, 158, 11, 0.08);
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.visualRow {
+  display: flex;
+  gap: var(--space-md);
+  align-items: stretch;
+}
+
 .explorer {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.4fr) minmax(220px, 1fr);
@@ -168,6 +193,10 @@
 }
 
 @media (max-width: 1100px) {
+  .visualRow {
+    flex-direction: column;
+  }
+
   .explorer {
     grid-template-columns: 1fr;
   }
