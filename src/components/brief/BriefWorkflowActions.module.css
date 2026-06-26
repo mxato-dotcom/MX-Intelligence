@@ -1,0 +1,75 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.actionsCompact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.actionButton,
+.actionButtonPrimary,
+.actionButtonMuted {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.actionButton {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+.actionButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.actionButtonPrimary {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.actionButtonPrimary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.actionButtonMuted {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.actionButtonMuted:hover:not(:disabled) {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.actionButton:disabled,
+.actionButtonPrimary:disabled,
+.actionButtonMuted:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .actions {
+    flex-direction: column;
+  }
+
+  .actionButton,
+  .actionButtonPrimary,
+  .actionButtonMuted {
+    width: 100%;
+    text-align: center;
+  }
+}

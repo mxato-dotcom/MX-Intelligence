@@ -1,11 +1,17 @@
-import { Link } from 'react-router-dom'
 import { useCallback, useEffect, useState } from 'react'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { BriefStatusBadge } from '@/components/brief/BriefStatusBadge'
+import { BriefWorkflowActions } from '@/components/brief/BriefWorkflowActions'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
 import { riskLevelClass } from '@/intelligence/brief/BriefScoring'
 import { formatDate } from '@/lib/format'
-import { briefDetailPath } from '@/lib/constants'
-import { generateAndStoreDailyBrief, listDailyBriefHistory } from '@/services/dailyBriefService'
+import {
+  archiveBrief,
+  generateAndStoreDailyBrief,
+  listDailyBriefHistory,
+  markBriefReviewed,
+  publishBrief,
+} from '@/services/dailyBriefService'
 import type { IntelligenceDailyBrief } from '@/intelligence/brief/BriefTypes'
 import styles from './BriefsPage.module.css'
 
@@ -17,6 +23,8 @@ export function BriefsPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [generateSuccess, setGenerateSuccess] = useState<string | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const loadBriefs = useCallback(async () => {
     setIsLoading(true)
@@ -40,6 +48,7 @@ export function BriefsPage() {
     setIsGenerating(true)
     setGenerateError(null)
     setGenerateSuccess(null)
+    setActionError(null)
 
     try {
       const brief = await generateAndStoreDailyBrief()
@@ -61,10 +70,38 @@ export function BriefsPage() {
     }
   }
 
+  const runWorkflowAction = async (
+    id: string,
+    action: 'review' | 'publish' | 'archive',
+  ) => {
+    setProcessingId(id)
+    setActionError(null)
+
+    try {
+      if (action === 'review') {
+        await markBriefReviewed(id)
+      } else if (action === 'publish') {
+        await publishBrief(id)
+      } else {
+        await archiveBrief(id)
+      }
+
+      notifyDataRefresh()
+      await loadBriefs()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Brief workflow action failed')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const showEmptyState =
+    !isLoading && !error && !isGenerating && briefs.length === 0
+
   return (
     <PageContainer
       title="Intelligence Briefs"
-      description="Browse generated daily intelligence briefings and open prior executive summaries."
+      description="Review, publish, and archive daily intelligence reports."
       actions={
         <button
           className={styles.generateButton}
@@ -90,6 +127,12 @@ export function BriefsPage() {
         </div>
       )}
 
+      {actionError && (
+        <div className={`${styles.stateBox} ${styles.stateBoxError}`} role="alert">
+          {actionError}
+        </div>
+      )}
+
       {isLoading && !isGenerating && <div className={styles.stateBox}>Loading brief history…</div>}
 
       {error && !isLoading && !isGenerating && (
@@ -98,32 +141,61 @@ export function BriefsPage() {
         </div>
       )}
 
-      {!isLoading && !error && !isGenerating && briefs.length === 0 && (
-        <div className={styles.stateBox}>
-          No briefings generated yet. Click <strong>Generate Brief</strong> or import articles to
-          create the first brief.
+      {showEmptyState && (
+        <div className={styles.emptyState}>
+          <h3 className={styles.emptyTitle}>No intelligence briefs yet</h3>
+          <p className={styles.emptyText}>
+            Generate your first executive briefing from imported articles, fusion clusters, and
+            extracted entities.
+          </p>
+          <button
+            className={styles.generateButton}
+            type="button"
+            onClick={handleGenerateBrief}
+            disabled={isGenerating}
+          >
+            Generate Brief
+          </button>
         </div>
       )}
 
       {!isLoading && !error && briefs.length > 0 && (
         <div className={styles.list}>
           {briefs.map((brief) => (
-            <Link key={brief.id} to={briefDetailPath(brief.id)} className={styles.card}>
+            <article key={brief.id} className={styles.card}>
               <div className={styles.cardHeader}>
-                <h3 className={styles.cardTitle}>{brief.title}</h3>
-                <span className={`${styles.riskBadge} ${styles[riskLevelClass(brief.riskLevel)]}`}>
-                  {brief.riskLevel}
-                </span>
+                <div className={styles.cardTitleBlock}>
+                  <h3 className={styles.cardTitle}>{brief.title}</h3>
+                  <time className={styles.cardDate} dateTime={brief.generatedAt}>
+                    {formatDate(brief.generatedAt)}
+                  </time>
+                </div>
+                <div className={styles.badges}>
+                  <BriefStatusBadge status={brief.status} />
+                  <span className={`${styles.riskBadge} ${styles[riskLevelClass(brief.riskLevel)]}`}>
+                    {brief.riskLevel}
+                  </span>
+                </div>
               </div>
+
               <p className={styles.summary}>{brief.summary}</p>
-              <div className={styles.meta}>
+
+              <div className={styles.statsGrid}>
+                <span>{brief.importanceScore}% importance</span>
                 <span>{brief.articleCount} articles</span>
                 <span>{brief.clusterCount} clusters</span>
                 <span>{brief.entityCount} entities</span>
                 <span>{brief.payload.overallConfidence}% confidence</span>
-                <time dateTime={brief.generatedAt}>{formatDate(brief.generatedAt)}</time>
               </div>
-            </Link>
+
+              <BriefWorkflowActions
+                brief={brief}
+                isProcessing={processingId === brief.id}
+                onMarkReviewed={(briefId) => runWorkflowAction(briefId, 'review')}
+                onPublish={(briefId) => runWorkflowAction(briefId, 'publish')}
+                onArchive={(briefId) => runWorkflowAction(briefId, 'archive')}
+              />
+            </article>
           ))}
         </div>
       )}

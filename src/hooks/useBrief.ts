@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { IntelligenceDailyBrief } from '@/intelligence/brief/BriefTypes'
 import type { IntelligenceCluster } from '@/intelligence/fusion/FusionCluster'
 import type { Article } from '@/types/article'
@@ -13,7 +13,7 @@ export function useBrief(id: string | undefined) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!id) {
       setBrief(null)
       setRelatedArticles([])
@@ -22,55 +22,41 @@ export function useBrief(id: string | undefined) {
       return
     }
 
-    let isMounted = true
+    setIsLoading(true)
+    setError(null)
 
-    const load = async () => {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const loadedBrief = await getDailyBriefById(id)
-        if (!loadedBrief) {
-          if (isMounted) {
-            setBrief(null)
-            setRelatedArticles([])
-            setRelatedClusters([])
-            setError('Brief not found')
-          }
-          return
-        }
-
-        await rebuildFusionClusters()
-        const clusterIds = new Set(loadedBrief.payload.relatedClusterIds)
-        const clusters = getFusionClusters().filter((cluster) => clusterIds.has(cluster.id))
-
-        const articleIds = loadedBrief.payload.relatedArticleIds.slice(0, 20)
-        const articles = await Promise.all(
-          articleIds.map((articleId) => articleService.getArticleById(articleId)),
-        )
-
-        if (isMounted) {
-          setBrief(loadedBrief)
-          setRelatedArticles(articles.filter((article): article is Article => article !== null))
-          setRelatedClusters(clusters.slice(0, 10))
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load brief')
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
+    try {
+      const loadedBrief = await getDailyBriefById(id)
+      if (!loadedBrief) {
+        setBrief(null)
+        setRelatedArticles([])
+        setRelatedClusters([])
+        setError('Brief not found')
+        return
       }
-    }
 
-    load()
+      await rebuildFusionClusters()
+      const clusterIds = new Set(loadedBrief.payload.relatedClusterIds)
+      const clusters = getFusionClusters().filter((cluster) => clusterIds.has(cluster.id))
 
-    return () => {
-      isMounted = false
+      const articleIds = loadedBrief.payload.relatedArticleIds.slice(0, 20)
+      const articles = await Promise.all(
+        articleIds.map((articleId) => articleService.getArticleById(articleId)),
+      )
+
+      setBrief(loadedBrief)
+      setRelatedArticles(articles.filter((article): article is Article => article !== null))
+      setRelatedClusters(clusters.slice(0, 10))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load brief')
+    } finally {
+      setIsLoading(false)
     }
   }, [id])
 
-  return { brief, relatedArticles, relatedClusters, isLoading, error }
+  useEffect(() => {
+    load()
+  }, [load])
+
+  return { brief, relatedArticles, relatedClusters, isLoading, error, reload: load }
 }

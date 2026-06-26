@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BriefSection } from '@/components/dashboard/BriefSection'
+import { BriefStatusBadge } from '@/components/brief/BriefStatusBadge'
 import { getOrderedBriefSections } from '@/intelligence/brief/BriefGenerator'
 import { riskLevelClass } from '@/intelligence/brief/BriefScoring'
 import type { IntelligenceDailyBrief } from '@/intelligence/brief/BriefTypes'
@@ -73,6 +74,10 @@ export function DailyBriefCard({ brief, isGenerating = false }: DailyBriefCardPr
       </div>
 
       <div className={styles.statsRow}>
+        <div className={styles.statPill}>
+          <span className={styles.statLabel}>Status</span>
+          <BriefStatusBadge status={brief.status} />
+        </div>
         <div className={styles.statPill}>
           <span className={styles.statLabel}>Risk</span>
           <span className={`${styles.riskBadge} ${styles[riskLevelClass(brief.riskLevel)]}`}>

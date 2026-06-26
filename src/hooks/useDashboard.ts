@@ -8,7 +8,7 @@ import type { TrustDashboardStats } from '@/intelligence/scoring/TrustScoreEngin
 import type { FusionDashboardStats, IntelligenceCluster } from '@/intelligence/fusion/FusionCluster'
 import * as dashboardService from '@/services/dashboardService'
 import * as sourceService from '@/services/sourceService'
-import { getLatestDailyBrief } from '@/services/dailyBriefService'
+import { getDashboardBrief } from '@/services/dailyBriefService'
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import { rebuildFusionClusters, getFusionDashboardStats, getFusionClusters } from '@/services/fusionClusterService'
 import { getEntityDashboardStats } from '@/services/entityExtractionService'
@@ -45,7 +45,7 @@ export function useDashboard() {
           dashboardService.getLatestArticles(5),
           dashboardService.getLatestVideos(5),
           dashboardService.getDashboardStats(),
-          getLatestDailyBrief(),
+          getDashboardBrief(),
           sourceService.getSources(),
         ])
 

@@ -1,18 +1,56 @@
 import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
 import { BriefSection } from '@/components/dashboard/BriefSection'
+import { BriefStatusBadge } from '@/components/brief/BriefStatusBadge'
+import { BriefWorkflowActions } from '@/components/brief/BriefWorkflowActions'
 import { FusionClusterCard } from '@/components/fusion/FusionClusterCard'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { useDataRefresh } from '@/contexts/DataRefreshContext'
 import { getOrderedBriefSections } from '@/intelligence/brief/BriefGenerator'
 import { riskLevelClass } from '@/intelligence/brief/BriefScoring'
 import { useBrief } from '@/hooks/useBrief'
 import { articleDetailPath, ROUTES } from '@/lib/constants'
 import { formatDate } from '@/lib/format'
 import { safeStringOr } from '@/lib/safeString'
+import {
+  archiveBrief,
+  markBriefReviewed,
+  publishBrief,
+} from '@/services/dailyBriefService'
 import styles from './BriefDetailPage.module.css'
 
 export function BriefDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { brief, relatedArticles, relatedClusters, isLoading, error } = useBrief(id)
+  const { notifyDataRefresh } = useDataRefresh()
+  const { brief, relatedArticles, relatedClusters, isLoading, error, reload } = useBrief(id)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const runWorkflowAction = async (action: 'review' | 'publish' | 'archive') => {
+    if (!brief) {
+      return
+    }
+
+    setIsProcessing(true)
+    setActionError(null)
+
+    try {
+      if (action === 'review') {
+        await markBriefReviewed(brief.id)
+      } else if (action === 'publish') {
+        await publishBrief(brief.id)
+      } else {
+        await archiveBrief(brief.id)
+      }
+
+      notifyDataRefresh()
+      await reload()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Brief workflow action failed')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -52,15 +90,39 @@ export function BriefDetailPage() {
     >
       <div className={styles.detail}>
         <div className={styles.metaRow}>
+          <BriefStatusBadge status={brief.status} />
           <span className={`${styles.riskBadge} ${styles[riskLevelClass(brief.riskLevel)]}`}>
             {brief.riskLevel} risk
           </span>
           <span className={styles.metaItem}>{brief.importanceScore}% importance</span>
           <span className={styles.metaItem}>{brief.payload.overallConfidence}% confidence</span>
           <time className={styles.metaItem} dateTime={brief.generatedAt}>
-            {formatDate(brief.generatedAt)}
+            Generated {formatDate(brief.generatedAt)}
           </time>
+          {brief.reviewedAt && (
+            <span className={styles.metaItem}>Reviewed {formatDate(brief.reviewedAt)}</span>
+          )}
+          {brief.publishedAt && (
+            <span className={styles.metaItem}>Published {formatDate(brief.publishedAt)}</span>
+          )}
+          {brief.archivedAt && (
+            <span className={styles.metaItem}>Archived {formatDate(brief.archivedAt)}</span>
+          )}
         </div>
+
+        {actionError && (
+          <div className={`${styles.stateBox} ${styles.stateBoxError}`} role="alert">
+            {actionError}
+          </div>
+        )}
+
+        <BriefWorkflowActions
+          brief={brief}
+          isProcessing={isProcessing}
+          onMarkReviewed={() => runWorkflowAction('review')}
+          onPublish={() => runWorkflowAction('publish')}
+          onArchive={() => runWorkflowAction('archive')}
+        />
 
         <section className={styles.block}>
           <h3 className={styles.blockTitle}>Executive Summary</h3>
@@ -83,7 +145,7 @@ export function BriefDetailPage() {
         </div>
 
         <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Section summaries</h3>
+          <h3 className={styles.blockTitle}>Intelligence sections</h3>
           <div className={styles.sections}>
             {sections.map((section) => (
               <BriefSection key={section.id} section={section} />
@@ -92,13 +154,19 @@ export function BriefDetailPage() {
         </section>
 
         <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Risk indicators</h3>
-          <ul className={styles.list}>
-            <li>Risk level: {brief.riskLevel}</li>
-            <li>Importance score: {brief.importanceScore}</li>
-            <li>Overall confidence: {brief.payload.overallConfidence}%</li>
-            {brief.payload.topEvent && <li>Top event: {brief.payload.topEvent.value}</li>}
-          </ul>
+          <h3 className={styles.blockTitle}>Source breakdown</h3>
+          <div className={styles.sourceList}>
+            {brief.payload.sourcesUsed.length === 0 ? (
+              <p className={styles.text}>No source breakdown available.</p>
+            ) : (
+              brief.payload.sourcesUsed.map((source) => (
+                <div key={source.sourceName} className={styles.sourceRow}>
+                  <span>{source.sourceName}</span>
+                  <span>{source.articleCount} articles</span>
+                </div>
+              ))
+            )}
+          </div>
         </section>
 
         <section className={styles.block}>
@@ -116,25 +184,17 @@ export function BriefDetailPage() {
 
         <section className={styles.block}>
           <h3 className={styles.blockTitle}>Related entities</h3>
-          <div className={styles.chips}>
-            {brief.payload.relatedEntities.map((entity) => (
-              <span key={`${entity.type}-${entity.label}`} className={styles.chip}>
-                {entity.label} ({entity.type}, {entity.count})
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Source breakdown</h3>
-          <div className={styles.sourceList}>
-            {brief.payload.sourcesUsed.map((source) => (
-              <div key={source.sourceName} className={styles.sourceRow}>
-                <span>{source.sourceName}</span>
-                <span>{source.articleCount} articles</span>
-              </div>
-            ))}
-          </div>
+          {brief.payload.relatedEntities.length === 0 ? (
+            <p className={styles.text}>No related entities linked to this briefing.</p>
+          ) : (
+            <div className={styles.chips}>
+              {brief.payload.relatedEntities.map((entity) => (
+                <span key={`${entity.type}-${entity.label}`} className={styles.chip}>
+                  {entity.label} ({entity.type}, {entity.count})
+                </span>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className={styles.block}>

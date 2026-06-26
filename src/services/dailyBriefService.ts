@@ -1,5 +1,6 @@
 import type {
   BriefRiskLevel,
+  BriefStatus,
   IntelligenceBriefPayload,
   IntelligenceDailyBrief,
 } from '@/intelligence/brief/BriefTypes'
@@ -22,6 +23,10 @@ interface DailyBriefRow {
   entity_count?: number | null
   generated_at?: string | null
   created_at?: string | null
+  status?: string | null
+  reviewed_at?: string | null
+  published_at?: string | null
+  archived_at?: string | null
   brief_data?: IntelligenceBriefPayload | null
   content?: string | null
 }
@@ -39,6 +44,18 @@ function parseRiskLevel(value: string | null | undefined): BriefRiskLevel {
   }
 }
 
+function parseBriefStatus(value: string | null | undefined): BriefStatus {
+  switch (value) {
+    case 'draft':
+    case 'reviewed':
+    case 'published':
+    case 'archived':
+      return value
+    default:
+      return 'draft'
+  }
+}
+
 function mapBriefRow(row: DailyBriefRow): IntelligenceDailyBrief {
   const payload = (row.brief_data ?? {}) as IntelligenceBriefPayload
 
@@ -46,7 +63,8 @@ function mapBriefRow(row: DailyBriefRow): IntelligenceDailyBrief {
     id: String(row.id),
     title: safeString(row.title) || 'Intelligence Brief',
     summary: safeString(row.summary) || safeString(row.content),
-    executiveSummary: safeString(row.executive_summary) || safeString(row.summary) || safeString(row.content),
+    executiveSummary:
+      safeString(row.executive_summary) || safeString(row.summary) || safeString(row.content),
     riskLevel: parseRiskLevel(row.risk_level),
     importanceScore: Number(row.importance_score ?? 0),
     articleCount: Number(row.article_count ?? 0),
@@ -54,6 +72,10 @@ function mapBriefRow(row: DailyBriefRow): IntelligenceDailyBrief {
     entityCount: Number(row.entity_count ?? 0),
     generatedAt: safeString(row.generated_at) || safeString(row.created_at) || new Date().toISOString(),
     createdAt: safeString(row.created_at) || new Date().toISOString(),
+    status: parseBriefStatus(row.status),
+    reviewedAt: safeString(row.reviewed_at) || null,
+    publishedAt: safeString(row.published_at) || null,
+    archivedAt: safeString(row.archived_at) || null,
     payload: {
       sections: payload.sections ?? [],
       topEvent: payload.topEvent ?? null,
@@ -111,28 +133,58 @@ async function queryLatestBriefRow(): Promise<DailyBriefRow | null> {
   throw byGeneratedAt.error
 }
 
-export async function generateAndStoreDailyBrief(
-  provider?: BriefGeneratorProvider,
-): Promise<IntelligenceDailyBrief | null> {
-  const engine = provider ? new BriefEngine(provider) : briefEngine
-  const generated = await engine.buildGenerationResult()
-  const now = new Date().toISOString()
+async function queryLatestBriefByStatus(status: BriefStatus): Promise<DailyBriefRow | null> {
+  const primary = await supabase
+    .from('daily_briefs')
+    .select('*')
+    .eq('status', status)
+    .order('generated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
+  if (!primary.error) {
+    return (primary.data as DailyBriefRow | null) ?? null
+  }
+
+  if (isMissingTableError(primary.error)) {
+    return null
+  }
+
+  if (isMissingColumnError(primary.error)) {
+    const fallback = await supabase
+      .from('daily_briefs')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!fallback.error) {
+      return (fallback.data as DailyBriefRow | null) ?? null
+    }
+
+    if (isMissingTableError(fallback.error)) {
+      return null
+    }
+
+    if (isMissingColumnError(fallback.error)) {
+      return null
+    }
+
+    throw fallback.error
+  }
+
+  throw primary.error
+}
+
+async function updateBriefRow(
+  id: string,
+  patch: Record<string, string | null>,
+): Promise<IntelligenceDailyBrief | null> {
   const { data, error } = await supabase
     .from('daily_briefs')
-    .insert({
-      title: generated.title,
-      summary: generated.summary,
-      executive_summary: generated.executiveSummary,
-      risk_level: generated.riskLevel,
-      importance_score: generated.importanceScore,
-      article_count: generated.articleCount,
-      cluster_count: generated.clusterCount,
-      entity_count: generated.entityCount,
-      generated_at: now,
-      created_at: now,
-      brief_data: generated.payload,
-    })
+    .update(patch)
+    .eq('id', id)
     .select()
     .single()
 
@@ -147,9 +199,74 @@ export async function generateAndStoreDailyBrief(
   return mapBriefRow(data as DailyBriefRow)
 }
 
+export async function generateAndStoreDailyBrief(
+  provider?: BriefGeneratorProvider,
+): Promise<IntelligenceDailyBrief | null> {
+  const engine = provider ? new BriefEngine(provider) : briefEngine
+  const generated = await engine.buildGenerationResult()
+  const now = new Date().toISOString()
+
+  const insertPayload: Record<string, unknown> = {
+    title: generated.title,
+    summary: generated.summary,
+    executive_summary: generated.executiveSummary,
+    risk_level: generated.riskLevel,
+    importance_score: generated.importanceScore,
+    article_count: generated.articleCount,
+    cluster_count: generated.clusterCount,
+    entity_count: generated.entityCount,
+    generated_at: now,
+    created_at: now,
+    brief_data: generated.payload,
+    status: 'draft',
+  }
+
+  const { data, error } = await supabase.from('daily_briefs').insert(insertPayload).select().single()
+
+  if (error) {
+    if (isMissingTableError(error)) {
+      return null
+    }
+
+    if (isMissingColumnError(error)) {
+      const { status: _status, ...withoutStatus } = insertPayload
+      const retry = await supabase.from('daily_briefs').insert(withoutStatus).select().single()
+
+      if (retry.error) {
+        if (isMissingTableError(retry.error)) {
+          return null
+        }
+
+        throw retry.error
+      }
+
+      return mapBriefRow(retry.data as DailyBriefRow)
+    }
+
+    throw error
+  }
+
+  return mapBriefRow(data as DailyBriefRow)
+}
+
 export async function getLatestDailyBrief(): Promise<IntelligenceDailyBrief | null> {
   const row = await queryLatestBriefRow()
   return row ? mapBriefRow(row) : null
+}
+
+/** Latest published brief, or latest draft if none published. */
+export async function getDashboardBrief(): Promise<IntelligenceDailyBrief | null> {
+  const published = await queryLatestBriefByStatus('published')
+  if (published) {
+    return mapBriefRow(published)
+  }
+
+  const draft = await queryLatestBriefByStatus('draft')
+  if (draft) {
+    return mapBriefRow(draft)
+  }
+
+  return getLatestDailyBrief()
 }
 
 export async function getDailyBriefById(id: string): Promise<IntelligenceDailyBrief | null> {
@@ -170,7 +287,7 @@ export async function getDailyBriefById(id: string): Promise<IntelligenceDailyBr
   return mapBriefRow(data as DailyBriefRow)
 }
 
-export async function listDailyBriefHistory(limit = 30): Promise<IntelligenceDailyBrief[]> {
+export async function listDailyBriefHistory(limit = 50): Promise<IntelligenceDailyBrief[]> {
   const primary = await supabase
     .from('daily_briefs')
     .select('*')
@@ -220,4 +337,63 @@ export async function getDailyBriefCount(): Promise<number> {
   }
 
   return count ?? 0
+}
+
+export async function markBriefReviewed(id: string): Promise<IntelligenceDailyBrief | null> {
+  const existing = await getDailyBriefById(id)
+  if (!existing) {
+    return null
+  }
+
+  if (existing.status !== 'draft') {
+    throw new Error('Only draft briefs can be marked as reviewed')
+  }
+
+  const now = new Date().toISOString()
+  return updateBriefRow(id, {
+    status: 'reviewed',
+    reviewed_at: now,
+    archived_at: null,
+  })
+}
+
+export async function publishBrief(id: string): Promise<IntelligenceDailyBrief | null> {
+  const existing = await getDailyBriefById(id)
+  if (!existing) {
+    return null
+  }
+
+  if (existing.status !== 'draft' && existing.status !== 'reviewed') {
+    throw new Error('Only draft or reviewed briefs can be published')
+  }
+
+  const now = new Date().toISOString()
+  const patch: Record<string, string | null> = {
+    status: 'published',
+    published_at: now,
+    archived_at: null,
+  }
+
+  if (!existing.reviewedAt) {
+    patch.reviewed_at = now
+  }
+
+  return updateBriefRow(id, patch)
+}
+
+export async function archiveBrief(id: string): Promise<IntelligenceDailyBrief | null> {
+  const existing = await getDailyBriefById(id)
+  if (!existing) {
+    return null
+  }
+
+  if (existing.status === 'archived') {
+    throw new Error('Brief is already archived')
+  }
+
+  const now = new Date().toISOString()
+  return updateBriefRow(id, {
+    status: 'archived',
+    archived_at: now,
+  })
 }

@@ -2,6 +2,10 @@ import type { EntityType } from '@/intelligence/entities/EntityType'
 
 export type BriefRiskLevel = 'Low' | 'Moderate' | 'Elevated' | 'High' | 'Critical'
 
+export type BriefStatus = 'draft' | 'reviewed' | 'published' | 'archived'
+
+export const BRIEF_STATUSES: BriefStatus[] = ['draft', 'reviewed', 'published', 'archived']
+
 export type BriefSectionId =
   | 'executive-summary'
   | 'key-events'
@@ -59,6 +63,10 @@ export interface IntelligenceDailyBrief {
   entityCount: number
   generatedAt: string
   createdAt: string
+  status: BriefStatus
+  reviewedAt: string | null
+  publishedAt: string | null
+  archivedAt: string | null
   payload: IntelligenceBriefPayload
 }
 
