@@ -502,6 +502,20 @@ export async function getEntityDashboardStats(): Promise<EntityDashboardStats> {
   }
 }
 
+export async function listAllArticleEntities(): Promise<ArticleEntityRecord[]> {
+  const { data, error } = await supabase.from('article_entities').select('*')
+
+  if (error) {
+    if (isMissingTableError(error)) {
+      return []
+    }
+
+    throw error
+  }
+
+  return (data ?? []).map((row) => mapRow(row as Record<string, unknown>))
+}
+
 export async function deleteEntityById(entityId: string): Promise<void> {
   const { error } = await supabase.from('article_entities').delete().eq('id', entityId)
 

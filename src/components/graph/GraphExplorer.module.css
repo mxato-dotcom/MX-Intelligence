@@ -1,0 +1,174 @@
+.explorer {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.4fr) minmax(220px, 1fr);
+  gap: var(--space-md);
+  min-height: 420px;
+}
+
+.compact {
+  min-height: 320px;
+}
+
+.leftPanel,
+.centerPanel,
+.rightPanel {
+  padding: var(--space-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.panelTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.searchInput {
+  width: 100%;
+  margin-bottom: var(--space-sm);
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.nodeList,
+.connectedList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.nodeButton,
+.connectedButton {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-base);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nodeButtonActive {
+  border-color: var(--color-accent-hover);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.nodeLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.nodeMeta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.selectedHeader {
+  margin-bottom: var(--space-md);
+}
+
+.selectedTitle {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.selectedMeta {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.detailLink {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent-hover);
+  text-decoration: none;
+}
+
+.detailLink:hover {
+  text-decoration: underline;
+}
+
+.sectionHeading {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.relationshipCards {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.relationshipCard {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-base);
+}
+
+.relationshipType {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent-hover);
+  text-transform: capitalize;
+}
+
+.relationshipTarget {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.relationshipMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.connectedItem {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.connectedLink {
+  display: block;
+  padding: 8px 10px;
+  text-decoration: none;
+  background: var(--color-bg-base);
+}
+
+.connectedLink:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.empty,
+.emptyInline {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .explorer {
+    grid-template-columns: 1fr;
+  }
+}

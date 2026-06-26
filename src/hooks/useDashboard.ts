@@ -15,7 +15,9 @@ import { getEntityDashboardStats } from '@/services/entityExtractionService'
 import type { EntityDashboardStats } from '@/services/entityService'
 import type { DashboardStats } from '@/services/dashboardService'
 import type { TimelineEvent } from '@/types/timeline'
+import type { TopRelationship } from '@/types/graph'
 import { getRecentTimelineEvents, getTimeline } from '@/services/timelineService'
+import { getTopRelationships } from '@/services/graphService'
 
 export interface DashboardData {
   stats: DashboardStats
@@ -28,6 +30,7 @@ export interface DashboardData {
   latestVideos: Video[]
   intelligenceBrief: IntelligenceDailyBrief | null
   recentTimelineEvents: TimelineEvent[]
+  topRelationships: TopRelationship[]
 }
 
 export function useDashboard() {
@@ -61,6 +64,13 @@ export function useDashboard() {
         const entityStats = await getEntityDashboardStats()
         const recentTimelineEvents = getRecentTimelineEvents(timeline, 5)
 
+        let topRelationships: TopRelationship[] = []
+        try {
+          topRelationships = await getTopRelationships(5)
+        } catch {
+          topRelationships = []
+        }
+
         if (isMounted) {
           setData({
             stats,
@@ -73,6 +83,7 @@ export function useDashboard() {
             latestVideos,
             intelligenceBrief,
             recentTimelineEvents,
+            topRelationships,
           })
         }
       } catch (err) {

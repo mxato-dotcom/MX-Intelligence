@@ -15,6 +15,7 @@ export const ROUTES = {
   BRIEFS: '/briefs',
   ALERTS: '/alerts',
   TIMELINE: '/timeline',
+  GRAPH: '/graph',
 } as const
 
 export function articleDetailPath(id: string): string {
@@ -37,11 +38,16 @@ export function briefDetailPath(id: string): string {
   return `/briefs/${id}`
 }
 
+export function entityDetailPath(normalizedText: string): string {
+  return `/entities/${encodeURIComponent(normalizedText)}`
+}
+
 export const NAV_ITEMS = [
   { label: 'Daily Brief', path: ROUTES.DASHBOARD },
   { label: 'Briefs', path: ROUTES.BRIEFS },
   { label: 'Alerts', path: ROUTES.ALERTS },
   { label: 'Timeline', path: ROUTES.TIMELINE },
+  { label: 'Graph', path: ROUTES.GRAPH },
   { label: 'Articles', path: ROUTES.ARTICLES },
   { label: 'Videos', path: ROUTES.VIDEOS },
   { label: 'Sources', path: ROUTES.SOURCES },

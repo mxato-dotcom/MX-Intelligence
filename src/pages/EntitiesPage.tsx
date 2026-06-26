@@ -20,6 +20,7 @@ import {
   type AggregatedEntity,
   type EntityTypeCount,
 } from '@/services/entityService'
+import { entityDetailPath } from '@/lib/constants'
 import styles from './EntitiesPage.module.css'
 
 export function EntitiesPage() {
@@ -263,7 +264,14 @@ export function EntitiesPage() {
                   <tbody>
                     {entities.map((entity) => (
                       <tr key={`${entity.entityType}-${entity.normalizedText}`} className={styles.row}>
-                        <td className={styles.cell}>{entity.displayText}</td>
+                        <td className={styles.cell}>
+                          <Link
+                            to={entityDetailPath(entity.normalizedText)}
+                            className={styles.entityLink}
+                          >
+                            {entity.displayText}
+                          </Link>
+                        </td>
                         <td className={styles.cell}>{entity.entityType}</td>
                         <td className={styles.cell}>{entity.mentionCount}</td>
                         <td className={styles.cell}>{entity.articleCount}</td>
