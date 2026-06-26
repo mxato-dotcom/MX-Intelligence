@@ -9,6 +9,7 @@ export const ROUTES = {
   SOURCES: '/sources',
   SOURCES_NEW: '/sources/new',
   CONNECTORS: '/connectors',
+  SCHEDULER: '/scheduler',
 } as const
 
 export function articleDetailPath(id: string): string {
@@ -33,4 +34,5 @@ export const NAV_ITEMS = [
   { label: 'Videos', path: ROUTES.VIDEOS },
   { label: 'Sources', path: ROUTES.SOURCES },
   { label: 'Connectors', path: ROUTES.CONNECTORS },
+  { label: 'Scheduler', path: ROUTES.SCHEDULER },
 ] as const

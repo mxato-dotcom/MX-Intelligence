@@ -1,4 +1,8 @@
 import type { Source } from '@/types/source'
+import {
+  formatIntervalLabel,
+  formatNextSyncLabel,
+} from '@/intelligence/scheduling/scheduleUtils'
 
 export type SyncHealthStatus = 'healthy' | 'degraded' | 'unhealthy' | 'unknown'
 
@@ -19,16 +23,20 @@ export interface SourceSyncActionResult {
   timestamp: string
 }
 
-/** Placeholder sync metadata until real collector persistence is wired in Phase 6B. */
+/** Build sync display metadata from source scheduling fields. */
 export function buildPlaceholderSyncState(source: Source): SourceSyncState {
   const isEnabled = source.status === 'enabled' && source.active
 
   return {
     sourceId: source.id,
     lastSync: source.last_sync_at,
-    nextSync: `Every ${source.update_interval} (placeholder)`,
+    nextSync: formatNextSyncLabel(source.last_sync_at, source.update_interval),
     health: isEnabled ? 'healthy' : 'degraded',
-    errorCount: isEnabled ? 0 : 2,
+    errorCount: isEnabled ? 0 : 1,
     itemsCollected: source.items_collected ?? 0,
   }
+}
+
+export function formatSourceInterval(source: Source): string {
+  return formatIntervalLabel(source.update_interval)
 }
