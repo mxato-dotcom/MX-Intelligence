@@ -1,0 +1,66 @@
+.exportBar {
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.exportTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+
+.exportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.exportButton,
+.exportButtonPrimary {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.exportButton {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+.exportButton:hover {
+  border-color: var(--color-accent);
+}
+
+.exportButtonPrimary {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.exportButtonPrimary:hover {
+  background: var(--color-accent-hover);
+}
+
+@media (max-width: 640px) {
+  .exportActions {
+    flex-direction: column;
+  }
+
+  .exportButton,
+  .exportButtonPrimary {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media print {
+  .exportBar {
+    display: none !important;
+  }
+}

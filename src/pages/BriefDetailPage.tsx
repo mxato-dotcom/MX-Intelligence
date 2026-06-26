@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BriefSection } from '@/components/dashboard/BriefSection'
+import { BriefExportActions } from '@/components/brief/BriefExportActions'
 import { BriefStatusBadge } from '@/components/brief/BriefStatusBadge'
 import { BriefWorkflowActions } from '@/components/brief/BriefWorkflowActions'
 import { FusionClusterCard } from '@/components/fusion/FusionClusterCard'
@@ -25,6 +26,18 @@ export function BriefDetailPage() {
   const { brief, relatedArticles, relatedClusters, isLoading, error, reload } = useBrief(id)
   const [isProcessing, setIsProcessing] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [exportMessage, setExportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
+    null,
+  )
+
+  useEffect(() => {
+    if (!exportMessage) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => setExportMessage(null), 3500)
+    return () => window.clearTimeout(timeout)
+  }, [exportMessage])
 
   const runWorkflowAction = async (action: 'review' | 'publish' | 'archive') => {
     if (!brief) {
@@ -78,140 +91,178 @@ export function BriefDetailPage() {
   }
 
   const sections = getOrderedBriefSections(brief.payload.sections)
+  const exportInput = { brief, relatedArticles, relatedClusters }
 
   return (
     <PageContainer
       title={brief.title}
       actions={
-        <Link to={ROUTES.BRIEFS} className={styles.backLink}>
+        <Link to={ROUTES.BRIEFS} className={`${styles.backLink} ${styles.noPrint}`}>
           Back to briefs
         </Link>
       }
     >
       <div className={styles.detail}>
-        <div className={styles.metaRow}>
-          <BriefStatusBadge status={brief.status} />
-          <span className={`${styles.riskBadge} ${styles[riskLevelClass(brief.riskLevel)]}`}>
-            {brief.riskLevel} risk
-          </span>
-          <span className={styles.metaItem}>{brief.importanceScore}% importance</span>
-          <span className={styles.metaItem}>{brief.payload.overallConfidence}% confidence</span>
-          <time className={styles.metaItem} dateTime={brief.generatedAt}>
-            Generated {formatDate(brief.generatedAt)}
-          </time>
-          {brief.reviewedAt && (
-            <span className={styles.metaItem}>Reviewed {formatDate(brief.reviewedAt)}</span>
-          )}
-          {brief.publishedAt && (
-            <span className={styles.metaItem}>Published {formatDate(brief.publishedAt)}</span>
-          )}
-          {brief.archivedAt && (
-            <span className={styles.metaItem}>Archived {formatDate(brief.archivedAt)}</span>
-          )}
-        </div>
-
-        {actionError && (
-          <div className={`${styles.stateBox} ${styles.stateBoxError}`} role="alert">
-            {actionError}
+        {exportMessage && (
+          <div
+            className={
+              exportMessage.type === 'success' ? styles.exportMessageSuccess : styles.exportMessageError
+            }
+            role="status"
+          >
+            {exportMessage.text}
           </div>
         )}
 
-        <BriefWorkflowActions
-          brief={brief}
-          isProcessing={isProcessing}
-          onMarkReviewed={() => runWorkflowAction('review')}
-          onPublish={() => runWorkflowAction('publish')}
-          onArchive={() => runWorkflowAction('archive')}
-        />
-
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Executive Summary</h3>
-          <p className={styles.text}>{brief.executiveSummary}</p>
-        </section>
-
-        <div className={styles.statsGrid}>
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Articles analyzed</span>
-            <span className={styles.statValue}>{brief.articleCount}</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Clusters analyzed</span>
-            <span className={styles.statValue}>{brief.clusterCount}</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Entities analyzed</span>
-            <span className={styles.statValue}>{brief.entityCount}</span>
-          </div>
+        <div className={styles.noPrint}>
+          <BriefExportActions
+            exportInput={exportInput}
+            onMessage={setExportMessage}
+          />
         </div>
 
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Intelligence sections</h3>
-          <div className={styles.sections}>
-            {sections.map((section) => (
-              <BriefSection key={section.id} section={section} />
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Source breakdown</h3>
-          <div className={styles.sourceList}>
-            {brief.payload.sourcesUsed.length === 0 ? (
-              <p className={styles.text}>No source breakdown available.</p>
-            ) : (
-              brief.payload.sourcesUsed.map((source) => (
-                <div key={source.sourceName} className={styles.sourceRow}>
-                  <span>{source.sourceName}</span>
-                  <span>{source.articleCount} articles</span>
-                </div>
-              ))
+        <div className={styles.printableBrief}>
+          <div className={styles.metaRow}>
+            <BriefStatusBadge status={brief.status} />
+            <span className={`${styles.riskBadge} ${styles[riskLevelClass(brief.riskLevel)]}`}>
+              {brief.riskLevel} risk
+            </span>
+            <span className={styles.metaItem}>{brief.importanceScore}% importance</span>
+            <span className={styles.metaItem}>{brief.payload.overallConfidence}% confidence</span>
+            <time className={styles.metaItem} dateTime={brief.generatedAt}>
+              Generated {formatDate(brief.generatedAt)}
+            </time>
+            {brief.reviewedAt && (
+              <span className={styles.metaItem}>Reviewed {formatDate(brief.reviewedAt)}</span>
+            )}
+            {brief.publishedAt && (
+              <span className={styles.metaItem}>Published {formatDate(brief.publishedAt)}</span>
+            )}
+            {brief.archivedAt && (
+              <span className={styles.metaItem}>Archived {formatDate(brief.archivedAt)}</span>
             )}
           </div>
-        </section>
 
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Related clusters</h3>
-          {relatedClusters.length === 0 ? (
-            <p className={styles.text}>No related clusters available for this briefing.</p>
-          ) : (
-            <div className={styles.clusterList}>
-              {relatedClusters.map((cluster) => (
-                <FusionClusterCard key={cluster.id} cluster={cluster} />
-              ))}
+          {actionError && (
+            <div className={`${styles.stateBox} ${styles.stateBoxError} ${styles.noPrint}`} role="alert">
+              {actionError}
             </div>
           )}
-        </section>
 
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Related entities</h3>
-          {brief.payload.relatedEntities.length === 0 ? (
-            <p className={styles.text}>No related entities linked to this briefing.</p>
-          ) : (
-            <div className={styles.chips}>
-              {brief.payload.relatedEntities.map((entity) => (
-                <span key={`${entity.type}-${entity.label}`} className={styles.chip}>
-                  {entity.label} ({entity.type}, {entity.count})
-                </span>
+          <div className={styles.noPrint}>
+            <BriefWorkflowActions
+              brief={brief}
+              isProcessing={isProcessing}
+              onMarkReviewed={() => runWorkflowAction('review')}
+              onPublish={() => runWorkflowAction('publish')}
+              onArchive={() => runWorkflowAction('archive')}
+            />
+          </div>
+
+          <section className={styles.block}>
+            <h3 className={styles.blockTitle}>Executive Summary</h3>
+            <p className={styles.text}>{brief.executiveSummary}</p>
+          </section>
+
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <span className={styles.statLabel}>Articles analyzed</span>
+              <span className={styles.statValue}>{brief.articleCount}</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statLabel}>Clusters analyzed</span>
+              <span className={styles.statValue}>{brief.clusterCount}</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statLabel}>Entities analyzed</span>
+              <span className={styles.statValue}>{brief.entityCount}</span>
+            </div>
+          </div>
+
+          <section className={styles.block}>
+            <h3 className={styles.blockTitle}>Intelligence sections</h3>
+            <div className={styles.sections}>
+              {sections.map((section) => (
+                <BriefSection key={section.id} section={section} />
               ))}
             </div>
-          )}
-        </section>
+          </section>
 
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Related articles</h3>
-          {relatedArticles.length === 0 ? (
-            <p className={styles.text}>No related articles linked to this briefing.</p>
-          ) : (
-            <div className={styles.articleList}>
-              {relatedArticles.map((article) => (
-                <Link key={article.id} to={articleDetailPath(article.id)} className={styles.articleItem}>
-                  <span className={styles.articleTitle}>{safeStringOr(article.title, 'Untitled')}</span>
-                  <span className={styles.articleMeta}>{safeStringOr(article.source, 'Unknown source')}</span>
-                </Link>
-              ))}
+          <section className={styles.block}>
+            <h3 className={styles.blockTitle}>Source breakdown</h3>
+            <div className={styles.sourceList}>
+              {brief.payload.sourcesUsed.length === 0 ? (
+                <p className={styles.text}>No source breakdown available.</p>
+              ) : (
+                brief.payload.sourcesUsed.map((source) => (
+                  <div key={source.sourceName} className={styles.sourceRow}>
+                    <span>{source.sourceName}</span>
+                    <span>{source.articleCount} articles</span>
+                  </div>
+                ))
+              )}
             </div>
-          )}
-        </section>
+          </section>
+
+          <section className={styles.block}>
+            <h3 className={styles.blockTitle}>Related clusters</h3>
+            {relatedClusters.length === 0 ? (
+              <p className={styles.text}>No related clusters available for this briefing.</p>
+            ) : (
+              <div className={styles.clusterList}>
+                {relatedClusters.map((cluster) => (
+                  <FusionClusterCard key={cluster.id} cluster={cluster} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className={styles.block}>
+            <h3 className={styles.blockTitle}>Related entities</h3>
+            {brief.payload.relatedEntities.length === 0 ? (
+              <p className={styles.text}>No related entities linked to this briefing.</p>
+            ) : (
+              <div className={styles.chips}>
+                {brief.payload.relatedEntities.map((entity) => (
+                  <span key={`${entity.type}-${entity.label}`} className={styles.chip}>
+                    {entity.label} ({entity.type}, {entity.count})
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className={styles.block}>
+            <h3 className={styles.blockTitle}>Related articles</h3>
+            {relatedArticles.length === 0 ? (
+              <p className={styles.text}>No related articles linked to this briefing.</p>
+            ) : (
+              <div className={styles.articleList}>
+                {relatedArticles.map((article) => (
+                  <Link
+                    key={article.id}
+                    to={articleDetailPath(article.id)}
+                    className={`${styles.articleItem} ${styles.noPrint}`}
+                  >
+                    <span className={styles.articleTitle}>{safeStringOr(article.title, 'Untitled')}</span>
+                    <span className={styles.articleMeta}>{safeStringOr(article.source, 'Unknown source')}</span>
+                  </Link>
+                ))}
+                <div className={styles.printOnlyArticleList}>
+                  {relatedArticles.map((article) => (
+                    <div key={article.id} className={styles.printArticleRow}>
+                      <span className={styles.articleTitle}>{safeStringOr(article.title, 'Untitled')}</span>
+                      <span className={styles.articleMeta}>
+                        {safeStringOr(article.source, 'Unknown source')}
+                        {article.url ? ` · ${article.url}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </PageContainer>
   )

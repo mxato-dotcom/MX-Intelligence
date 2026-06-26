@@ -71,6 +71,26 @@
   min-width: 0;
 }
 
+@media print {
+  .sidebar,
+  .header {
+    display: none !important;
+  }
+
+  .shell {
+    display: block;
+  }
+
+  .main {
+    width: 100%;
+  }
+
+  .content {
+    padding: 0;
+    max-width: none;
+  }
+}
+
 .header {
   height: var(--header-height);
   display: flex;
