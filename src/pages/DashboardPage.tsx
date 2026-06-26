@@ -152,6 +152,15 @@ export function DashboardPage() {
           )}
         </div>
         <div className={styles.statCard}>
+          <p className={styles.statLabel}>Top Companies</p>
+          <p className={styles.statValueSmall}>
+            {entityStats.topCompanies[0]?.normalizedText ?? '—'}
+          </p>
+          {entityStats.topCompanies[0] && (
+            <p className={styles.statSubvalue}>{entityStats.topCompanies[0].count} mentions</p>
+          )}
+        </div>
+        <div className={styles.statCard}>
           <p className={styles.statLabel}>Top Countries</p>
           <p className={styles.statValueSmall}>
             {entityStats.topCountries[0]?.normalizedText ?? '—'}
@@ -170,12 +179,12 @@ export function DashboardPage() {
           )}
         </div>
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>Top Companies</p>
+          <p className={styles.statLabel}>Top Keywords</p>
           <p className={styles.statValueSmall}>
-            {entityStats.topCompanies[0]?.normalizedText ?? '—'}
+            {entityStats.topKeywords[0]?.normalizedText ?? '—'}
           </p>
-          {entityStats.topCompanies[0] && (
-            <p className={styles.statSubvalue}>{entityStats.topCompanies[0].count} mentions</p>
+          {entityStats.topKeywords[0] && (
+            <p className={styles.statSubvalue}>{entityStats.topKeywords[0].count} mentions</p>
           )}
         </div>
       </div>

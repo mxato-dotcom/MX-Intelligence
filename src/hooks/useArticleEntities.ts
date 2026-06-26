@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { GroupedArticleEntities } from '@/intelligence/entities/Entity'
+import { useDataRefresh } from '@/contexts/DataRefreshContext'
 import { getEntitiesForArticle, groupEntitiesByType } from '@/services/entityService'
 
 export function useArticleEntities(articleId: string | undefined) {
+  const { refreshToken } = useDataRefresh()
   const [groups, setGroups] = useState<GroupedArticleEntities[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,7 +43,7 @@ export function useArticleEntities(articleId: string | undefined) {
     return () => {
       isMounted = false
     }
-  }, [articleId])
+  }, [articleId, refreshToken])
 
   return { groups, isLoading, error }
 }

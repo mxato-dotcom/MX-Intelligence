@@ -16,6 +16,7 @@ import { SignUpPage } from '@/pages/SignUpPage'
 import { SourceDetailPage } from '@/pages/SourceDetailPage'
 import { SourcesPage } from '@/pages/SourcesPage'
 import { QueuePage } from '@/pages/QueuePage'
+import { EntitiesPage } from '@/pages/EntitiesPage'
 import { SchedulerPage } from '@/pages/SchedulerPage'
 import { VideoDetailPage } from '@/pages/VideoDetailPage'
 import { VideosPage } from '@/pages/VideosPage'
@@ -42,6 +43,7 @@ export function App() {
             <Route path={ROUTES.CONNECTORS} element={<ConnectorsPage />} />
             <Route path={ROUTES.SCHEDULER} element={<SchedulerPage />} />
             <Route path={ROUTES.QUEUE} element={<QueuePage />} />
+            <Route path={ROUTES.ENTITIES} element={<EntitiesPage />} />
             <Route path={ROUTES.SOURCES_NEW} element={<CreateSourcePage />} />
             <Route path="/sources/:id/edit" element={<EditSourcePage />} />
             <Route path="/sources/:id" element={<SourceDetailPage />} />

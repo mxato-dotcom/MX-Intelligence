@@ -11,6 +11,7 @@ export const ROUTES = {
   CONNECTORS: '/connectors',
   SCHEDULER: '/scheduler',
   QUEUE: '/queue',
+  ENTITIES: '/entities',
 } as const
 
 export function articleDetailPath(id: string): string {
@@ -37,4 +38,5 @@ export const NAV_ITEMS = [
   { label: 'Connectors', path: ROUTES.CONNECTORS },
   { label: 'Scheduler', path: ROUTES.SCHEDULER },
   { label: 'Queue', path: ROUTES.QUEUE },
+  { label: 'Entities', path: ROUTES.ENTITIES },
 ] as const

@@ -23,6 +23,26 @@ export interface EntityDashboardStats {
   topCountries: TopEntitySummary[]
   topTechnologies: TopEntitySummary[]
   topCompanies: TopEntitySummary[]
+  topKeywords: TopEntitySummary[]
+}
+
+export interface EntityInsertResult {
+  inserted: number
+  skippedDuplicates: number
+}
+
+export interface AggregatedEntity {
+  entityType: EntityType
+  normalizedText: string
+  displayText: string
+  mentionCount: number
+  articleCount: number
+  averageConfidence: number
+}
+
+export interface EntityTypeCount {
+  entityType: EntityType
+  count: number
 }
 
 export interface SourceEntityStats {
@@ -51,6 +71,91 @@ export async function deleteEntitiesForArticle(articleId: string): Promise<void>
   if (error) {
     throw error
   }
+}
+
+function entityDedupeKey(entityType: EntityType, normalizedText: string): string {
+  return `${entityType}::${safeTrim(normalizedText).toLowerCase()}`
+}
+
+export async function getExistingEntityKeysForArticle(articleId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('article_entities')
+    .select('entity_type, normalized_text')
+    .eq('article_id', articleId)
+
+  if (error) {
+    throw error
+  }
+
+  const keys = new Set<string>()
+  for (const row of data ?? []) {
+    const record = row as Record<string, unknown>
+    const entityType = String(record.entity_type ?? '')
+    const normalized = String(record.normalized_text ?? '').toLowerCase()
+    if (!normalized || !isEntityType(entityType)) {
+      continue
+    }
+    keys.add(entityDedupeKey(entityType, normalized))
+  }
+
+  return keys
+}
+
+export async function insertNewEntitiesOnly(
+  articleId: string,
+  entities: Array<{
+    entity_type: EntityType
+    entity_text: string
+    normalized_text: string
+    confidence: number
+  }>,
+): Promise<EntityInsertResult> {
+  if (entities.length === 0) {
+    return { inserted: 0, skippedDuplicates: 0 }
+  }
+
+  const existingKeys = await getExistingEntityKeysForArticle(articleId)
+  const toInsert: typeof entities = []
+  let skippedDuplicates = 0
+
+  for (const entity of entities) {
+    const normalized = safeTrim(entity.normalized_text).toLowerCase()
+    if (!normalized) {
+      continue
+    }
+
+    const key = entityDedupeKey(entity.entity_type, normalized)
+    if (existingKeys.has(key)) {
+      skippedDuplicates += 1
+      continue
+    }
+
+    existingKeys.add(key)
+    toInsert.push({
+      ...entity,
+      normalized_text: normalized,
+    })
+  }
+
+  if (toInsert.length === 0) {
+    return { inserted: 0, skippedDuplicates }
+  }
+
+  const { error } = await supabase.from('article_entities').insert(
+    toInsert.map((entity) => ({
+      article_id: articleId,
+      entity_type: entity.entity_type,
+      entity_text: entity.entity_text,
+      normalized_text: entity.normalized_text,
+      confidence: entity.confidence,
+    })),
+  )
+
+  if (error) {
+    throw error
+  }
+
+  return { inserted: toInsert.length, skippedDuplicates }
 }
 
 export async function insertEntities(
@@ -217,6 +322,129 @@ export async function getTotalEntityCount(): Promise<number> {
   return count ?? 0
 }
 
+export async function getEntityTypeDistribution(): Promise<EntityTypeCount[]> {
+  const { data, error } = await supabase.from('article_entities').select('entity_type')
+
+  if (error) {
+    throw error
+  }
+
+  const counts = new Map<EntityType, number>()
+
+  for (const row of data ?? []) {
+    const entityType = String((row as Record<string, unknown>).entity_type ?? '')
+    if (!isEntityType(entityType)) {
+      continue
+    }
+    counts.set(entityType, (counts.get(entityType) ?? 0) + 1)
+  }
+
+  return [...counts.entries()]
+    .map(([entityType, count]) => ({ entityType, count }))
+    .sort((left, right) => right.count - left.count)
+}
+
+export async function getAggregatedEntities(filters: {
+  type?: EntityType
+  search?: string
+  limit?: number
+} = {}): Promise<AggregatedEntity[]> {
+  const { data, error } = await supabase
+    .from('article_entities')
+    .select('entity_type, entity_text, normalized_text, article_id, confidence')
+
+  if (error) {
+    throw error
+  }
+
+  const searchTerm = safeTrim(filters.search).toLowerCase()
+  const groups = new Map<string, AggregatedEntity & { articleIds: Set<string> }>()
+
+  for (const row of data ?? []) {
+    const record = row as Record<string, unknown>
+    const entityTypeRaw = String(record.entity_type ?? '')
+    if (!isEntityType(entityTypeRaw)) {
+      continue
+    }
+
+    if (filters.type && entityTypeRaw !== filters.type) {
+      continue
+    }
+
+    const normalized = String(record.normalized_text ?? '').toLowerCase()
+    const displayText = String(record.entity_text ?? normalized)
+    if (!normalized) {
+      continue
+    }
+
+    if (
+      searchTerm &&
+      !normalized.includes(searchTerm) &&
+      !displayText.toLowerCase().includes(searchTerm)
+    ) {
+      continue
+    }
+
+    const key = entityDedupeKey(entityTypeRaw, normalized)
+    const articleId = String(record.article_id ?? '')
+    const confidence = Number(record.confidence ?? 0)
+    const existing = groups.get(key)
+
+    if (!existing) {
+      groups.set(key, {
+        entityType: entityTypeRaw,
+        normalizedText: normalized,
+        displayText,
+        mentionCount: 1,
+        articleCount: articleId ? 1 : 0,
+        averageConfidence: confidence,
+        articleIds: new Set(articleId ? [articleId] : []),
+      })
+      continue
+    }
+
+    existing.mentionCount += 1
+    existing.averageConfidence += confidence
+    if (articleId) {
+      existing.articleIds.add(articleId)
+    }
+  }
+
+  const aggregated = [...groups.values()].map((entry) => ({
+    entityType: entry.entityType,
+    normalizedText: entry.normalizedText,
+    displayText: entry.displayText,
+    mentionCount: entry.mentionCount,
+    articleCount: entry.articleIds.size,
+    averageConfidence: Math.round(entry.averageConfidence / entry.mentionCount),
+  }))
+
+  aggregated.sort(
+    (left, right) => right.articleCount - left.articleCount || right.mentionCount - left.mentionCount,
+  )
+
+  const limit = filters.limit ?? 100
+  return aggregated.slice(0, limit)
+}
+
+export async function countArticlesWithEntities(): Promise<number> {
+  const { data, error } = await supabase.from('article_entities').select('article_id')
+
+  if (error) {
+    throw error
+  }
+
+  const articleIds = new Set<string>()
+  for (const row of data ?? []) {
+    const articleId = String((row as Record<string, unknown>).article_id ?? '')
+    if (articleId) {
+      articleIds.add(articleId)
+    }
+  }
+
+  return articleIds.size
+}
+
 export async function getEntityDashboardStats(): Promise<EntityDashboardStats> {
   const [
     totalEntities,
@@ -224,12 +452,14 @@ export async function getEntityDashboardStats(): Promise<EntityDashboardStats> {
     topCountries,
     topTechnologies,
     topCompanies,
+    topKeywords,
   ] = await Promise.all([
     getTotalEntityCount(),
     getTopEntities('Organization', 5),
     getTopEntities('Country', 5),
     getTopEntities('Technology', 5),
     getTopEntities('Company', 5),
+    getTopEntities('Keyword', 5),
   ])
 
   return {
@@ -238,6 +468,7 @@ export async function getEntityDashboardStats(): Promise<EntityDashboardStats> {
     topCountries,
     topTechnologies,
     topCompanies,
+    topKeywords,
   }
 }
 

@@ -48,9 +48,13 @@ export async function extractAndStoreForArticleIds(articleIds: string[]): Promis
   }
 
   for (const articleId of articleIds) {
-    const article = await articleService.getArticleById(articleId)
-    if (article) {
-      await extractAndStoreForArticle(article)
+    try {
+      const article = await articleService.getArticleById(articleId)
+      if (article) {
+        await extractAndStoreForArticle(article)
+      }
+    } catch {
+      // Continue processing remaining articles when extraction fails
     }
   }
 }
@@ -63,4 +67,7 @@ export {
   getSourceEntityStats,
   getEntitiesForArticle,
   groupEntitiesByType,
+  getAggregatedEntities,
+  getEntityTypeDistribution,
+  countArticlesWithEntities,
 } from '@/services/entityService'
