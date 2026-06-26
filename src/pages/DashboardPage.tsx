@@ -27,7 +27,17 @@ export function DashboardPage() {
     return null
   }
 
-  const { stats, trustStats, fusionStats, topClusters, latestArticles, latestVideos, dailyBrief, highlightsText } = data
+  const {
+    stats,
+    trustStats,
+    fusionStats,
+    entityStats,
+    topClusters,
+    latestArticles,
+    latestVideos,
+    dailyBrief,
+    highlightsText,
+  } = data
   const email = user?.email ?? 'there'
 
   return (
@@ -123,6 +133,49 @@ export function DashboardPage() {
           </p>
           {fusionStats.topClusterTitle && (
             <p className={styles.statSubvalue}>{fusionStats.topClusterConfidence}%</p>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.entityStatsGrid}>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Total Entities</p>
+          <p className={styles.statValue}>{entityStats.totalEntities}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Top Organizations</p>
+          <p className={styles.statValueSmall}>
+            {entityStats.topOrganizations[0]?.normalizedText ?? '—'}
+          </p>
+          {entityStats.topOrganizations[0] && (
+            <p className={styles.statSubvalue}>{entityStats.topOrganizations[0].count} mentions</p>
+          )}
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Top Countries</p>
+          <p className={styles.statValueSmall}>
+            {entityStats.topCountries[0]?.normalizedText ?? '—'}
+          </p>
+          {entityStats.topCountries[0] && (
+            <p className={styles.statSubvalue}>{entityStats.topCountries[0].count} mentions</p>
+          )}
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Top Technologies</p>
+          <p className={styles.statValueSmall}>
+            {entityStats.topTechnologies[0]?.normalizedText ?? '—'}
+          </p>
+          {entityStats.topTechnologies[0] && (
+            <p className={styles.statSubvalue}>{entityStats.topTechnologies[0].count} mentions</p>
+          )}
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Top Companies</p>
+          <p className={styles.statValueSmall}>
+            {entityStats.topCompanies[0]?.normalizedText ?? '—'}
+          </p>
+          {entityStats.topCompanies[0] && (
+            <p className={styles.statSubvalue}>{entityStats.topCompanies[0].count} mentions</p>
           )}
         </div>
       </div>

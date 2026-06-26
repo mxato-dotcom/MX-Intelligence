@@ -39,6 +39,12 @@
   gap: var(--space-md);
 }
 
+.entityStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
 .clusterList {
   display: flex;
   flex-direction: column;

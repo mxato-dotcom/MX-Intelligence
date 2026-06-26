@@ -10,6 +10,8 @@ import * as dashboardService from '@/services/dashboardService'
 import * as sourceService from '@/services/sourceService'
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import { rebuildFusionClusters, getFusionDashboardStats, getFusionClusters } from '@/services/fusionClusterService'
+import { getEntityDashboardStats } from '@/services/entityExtractionService'
+import type { EntityDashboardStats } from '@/services/entityService'
 import type { DashboardStats } from '@/services/dashboardService'
 
 export interface DashboardData {
@@ -17,6 +19,7 @@ export interface DashboardData {
   trustStats: TrustDashboardStats
   fusionStats: FusionDashboardStats
   topClusters: IntelligenceCluster[]
+  entityStats: EntityDashboardStats
   sources: Source[]
   latestArticles: Article[]
   latestVideos: Video[]
@@ -50,6 +53,7 @@ export function useDashboard() {
         await rebuildFusionClusters()
         const fusionStats = getFusionDashboardStats()
         const topClusters = getFusionClusters().slice(0, 5)
+        const entityStats = await getEntityDashboardStats()
 
         const highlightsText =
           dailyBrief?.content?.trim() ||
@@ -61,6 +65,7 @@ export function useDashboard() {
             trustStats,
             fusionStats,
             topClusters,
+            entityStats,
             sources,
             latestArticles,
             latestVideos,

@@ -3,6 +3,7 @@ import { SourceFeedActions } from '@/components/sources/SourceFeedActions'
 import { SourceSyncPanel } from '@/components/sources/SourceSyncPanel'
 import { SourceTrustDisplay } from '@/components/sources/SourceTrustDisplay'
 import { useSourceClusterSummary } from '@/hooks/useSourceClusterSummary'
+import { useSourceEntityStats } from '@/hooks/useSourceEntityStats'
 import { formatDate } from '@/lib/format'
 import { sourceDetailPath } from '@/lib/constants'
 import type { Source } from '@/types/source'
@@ -16,6 +17,7 @@ interface SourceCardProps {
 export function SourceCard({ source, onSourceUpdated }: SourceCardProps) {
   const isEnabled = source.status === 'enabled' && source.active
   const clusterSummary = useSourceClusterSummary(source.name)
+  const entityStats = useSourceEntityStats(source.name)
 
   return (
     <div className={styles.card}>
@@ -55,6 +57,11 @@ export function SourceCard({ source, onSourceUpdated }: SourceCardProps) {
             {clusterSummary.confirmedCount > 0 && (
               <span className={styles.metaLabel}> · {clusterSummary.confirmedCount} confirmed</span>
             )}
+          </span>
+        )}
+        {entityStats.articleCount > 0 && (
+          <span className={styles.metaItem}>
+            Entities/article: <span className={styles.metaLabel}>{entityStats.averageEntitiesPerArticle}</span>
           </span>
         )}
       </div>

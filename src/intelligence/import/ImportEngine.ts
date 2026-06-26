@@ -3,6 +3,7 @@ import { createDuplicateBatchState } from '@/intelligence/duplicate/DuplicateRes
 import type { DuplicateEngineImportResult } from '@/intelligence/duplicate/DuplicateResult'
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import { rebuildFusionClusters } from '@/services/fusionClusterService'
+import { extractAndStoreForArticleIds } from '@/services/entityExtractionService'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import { supabase } from '@/lib/supabase'
@@ -22,6 +23,7 @@ async function finalizeSourceImport(
   downloaded: number,
   result: ImportEngineResult,
   connectorHealthy = true,
+  processedArticleIds: string[] = [],
 ): Promise<void> {
   await sourceService.updateSourceAfterImport(source.id, result.imported + result.updated)
   const refreshed = await sourceService.getSourceById(source.id) ?? source
@@ -32,6 +34,7 @@ async function finalizeSourceImport(
     connectorHealthy,
   )
   await rebuildFusionClusters()
+  await extractAndStoreForArticleIds(processedArticleIds)
 }
 
 export async function importIntelligenceItems(
@@ -60,6 +63,7 @@ export async function importIntelligenceItems(
   let skipped = 0
   let updated = 0
   let failed = 0
+  const processedArticleIds: string[] = []
 
   for (const { item, fingerprint } of classifiedItems) {
     const check = duplicateEngine.checkDuplicate(item, fingerprint, index, batchState)
@@ -93,6 +97,7 @@ export async function importIntelligenceItems(
         }
 
         updated += 1
+        processedArticleIds.push(check.matchedArticleId)
         duplicateEngine.markImported(fingerprint, batchState)
       } catch {
         failed += 1
@@ -101,7 +106,7 @@ export async function importIntelligenceItems(
     }
 
     try {
-      const { error } = await supabase.from('articles').insert({
+      const { data, error } = await supabase.from('articles').insert({
         title: safeStringOr(item.title, 'Untitled'),
         source: safeStringOr(item.sourceName, 'Unknown source'),
         url: normalizedUrl,
@@ -112,7 +117,7 @@ export async function importIntelligenceItems(
         published_at: item.publishedAt || now,
         created_at: now,
         created_by: userId,
-      })
+      }).select('id').single()
 
       if (error) {
         if (error.code === '23505') {
@@ -125,6 +130,9 @@ export async function importIntelligenceItems(
       }
 
       imported += 1
+      if (data?.id) {
+        processedArticleIds.push(String(data.id))
+      }
       duplicateEngine.markImported(fingerprint, batchState)
     } catch {
       failed += 1
@@ -139,6 +147,7 @@ export async function importIntelligenceItems(
       options.downloaded ?? items.length,
       result,
       options.connectorHealthy,
+      processedArticleIds,
     )
   }
 

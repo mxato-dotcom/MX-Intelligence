@@ -1,6 +1,8 @@
 import { Link, useParams } from 'react-router-dom'
+import { ArticleEntityList } from '@/components/entities/ArticleEntityList'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useArticle } from '@/hooks/useArticle'
+import { useArticleEntities } from '@/hooks/useArticleEntities'
 import { formatDate } from '@/lib/format'
 import { safeStringOr } from '@/lib/safeString'
 import { ROUTES } from '@/lib/constants'
@@ -9,6 +11,11 @@ import styles from './ArticleDetailPage.module.css'
 export function ArticleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { article, isLoading, error } = useArticle(id)
+  const {
+    groups: entityGroups,
+    isLoading: entitiesLoading,
+    error: entitiesError,
+  } = useArticleEntities(article?.id)
 
   if (isLoading) {
     return (
@@ -67,6 +74,12 @@ export function ArticleDetailPage() {
           </p>
         )}
       </article>
+
+      <ArticleEntityList
+        groups={entityGroups}
+        isLoading={entitiesLoading}
+        error={entitiesError}
+      />
     </PageContainer>
   )
 }
