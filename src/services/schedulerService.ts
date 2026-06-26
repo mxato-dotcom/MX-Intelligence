@@ -1,10 +1,15 @@
 import { getConnector } from '@/intelligence/connector/connectorRegistry'
+import { queueManager } from '@/intelligence/queue/QueueManager'
+import {
+  enqueue as enqueueQueueJob,
+  getActiveJobForSource,
+} from '@/intelligence/queue/queueService'
+import type { EnqueueResult, QueueJob, QueueJobPriority } from '@/intelligence/queue/types'
 import {
   getNextSyncAt,
   isSyncDue,
   parseUpdateInterval,
 } from '@/intelligence/scheduling/scheduleUtils'
-import * as connectorService from '@/services/connectorService'
 import type {
   SchedulerStats,
   SyncJob,
@@ -18,17 +23,32 @@ const CONNECTOR_NOT_IMPLEMENTED = 'Connector not implemented yet.'
 interface SyncJobOptions {
   running?: boolean
   errorMessage?: string | null
+  queueJob?: QueueJob | null
+}
+
+function mapSourcePriority(priority: string): QueueJobPriority {
+  if (priority === 'high') {
+    return 'high'
+  }
+  if (priority === 'low') {
+    return 'low'
+  }
+  return 'medium'
 }
 
 function deriveSyncStatus(
   source: Source,
   options: SyncJobOptions = {},
 ): SyncJobStatus {
-  if (options.running) {
+  if (options.queueJob?.status === 'running' || options.running) {
     return 'running'
   }
 
-  if (options.errorMessage) {
+  if (options.queueJob?.status === 'waiting') {
+    return 'running'
+  }
+
+  if (options.errorMessage || options.queueJob?.status === 'failed') {
     return 'failed'
   }
 
@@ -54,6 +74,7 @@ function deriveSyncStatus(
 }
 
 export function getSourceSyncJob(source: Source, options: SyncJobOptions = {}): SyncJob {
+  const queueJob = options.queueJob ?? getActiveJobForSource(source.id)
   const due = isSyncDue(source.last_sync_at, source.update_interval)
   const nextSyncAt = getNextSyncAt(source.last_sync_at, source.update_interval)
 
@@ -62,12 +83,12 @@ export function getSourceSyncJob(source: Source, options: SyncJobOptions = {}): 
     sourceId: source.id,
     sourceName: source.name,
     connectorType: source.source_type,
-    status: deriveSyncStatus(source, options),
+    status: deriveSyncStatus(source, { ...options, queueJob }),
     lastSyncAt: source.last_sync_at,
     nextSyncAt,
     updateInterval: source.update_interval,
     itemsCollected: source.items_collected ?? 0,
-    errorMessage: options.errorMessage ?? null,
+    errorMessage: options.errorMessage ?? queueJob?.error ?? null,
     isDue: due,
   }
 }
@@ -76,9 +97,11 @@ export function getAllSourceSyncJobs(
   sources: Source[],
   optionsBySourceId?: Record<string, SyncJobOptions>,
 ): SyncJob[] {
-  return sources.map((source) =>
-    getSourceSyncJob(source, optionsBySourceId?.[source.id]),
-  )
+  return sources.map((source) => {
+    const options = optionsBySourceId?.[source.id] ?? {}
+    const queueJob = getActiveJobForSource(source.id)
+    return getSourceSyncJob(source, { ...options, queueJob })
+  })
 }
 
 export function getDueSources(sources: Source[]): Source[] {
@@ -103,33 +126,59 @@ export function computeSchedulerStats(
   return {
     totalSources: jobs.length,
     dueNow: jobs.filter((job) => job.status === 'due').length,
-    running: runningCount > 0 ? runningCount : jobs.filter((job) => job.status === 'running').length,
+    running:
+      runningCount > 0
+        ? runningCount
+        : jobs.filter((job) => job.status === 'running').length,
     failed: jobs.filter((job) => job.status === 'failed').length,
     manualOnly: jobs.filter((job) => job.status === 'manual').length,
   }
 }
 
-export async function runManualSync(source: Source, userId: string): Promise<SyncJobRunResult> {
+export async function enqueueSourceSync(source: Source, userId: string): Promise<EnqueueResult> {
   const connector = getConnector(source.source_type)
 
   if (!connector.implemented) {
     return { success: false, errorMessage: CONNECTOR_NOT_IMPLEMENTED }
   }
 
-  try {
-    const result = await connectorService.importArticlesFromFeed(source, userId)
+  const result = enqueueQueueJob({
+    sourceId: source.id,
+    sourceName: source.name,
+    connectorType: source.source_type,
+    priority: mapSourcePriority(source.priority),
+    userId,
+  })
 
+  if (result.job) {
+    await queueManager.processNext()
+  }
+
+  return result
+}
+
+/** @deprecated Use enqueueSourceSync — enqueues a sync job instead of importing directly. */
+export async function runManualSync(source: Source, userId: string): Promise<SyncJobRunResult> {
+  const result = await enqueueSourceSync(source, userId)
+
+  if (!result.success) {
+    return { success: false, errorMessage: result.errorMessage }
+  }
+
+  if (result.alreadyQueued) {
     return {
       success: true,
-      imported: result.imported,
-      skipped: result.skipped,
-      failed: result.failed,
+      imported: 0,
+      skipped: 0,
+      failed: 0,
     }
-  } catch (error) {
-    return {
-      success: false,
-      errorMessage: error instanceof Error ? error.message : 'Sync failed',
-    }
+  }
+
+  return {
+    success: true,
+    imported: 0,
+    skipped: 0,
+    failed: 0,
   }
 }
 

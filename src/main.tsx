@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { DataRefreshProvider } from '@/contexts/DataRefreshContext'
+import { QueueProvider } from '@/contexts/QueueContext'
 import './styles/globals.css'
 
 const rootElement = document.getElementById('root')
@@ -15,7 +16,9 @@ createRoot(rootElement).render(
   <StrictMode>
     <AuthProvider>
       <DataRefreshProvider>
-        <App />
+        <QueueProvider>
+          <App />
+        </QueueProvider>
       </DataRefreshProvider>
     </AuthProvider>
   </StrictMode>,

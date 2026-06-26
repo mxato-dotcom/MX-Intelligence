@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
+import { useQueue } from '@/contexts/QueueContext'
 import { useAuth } from '@/hooks/useAuth'
+import { getActiveJobForSource, getQueuePosition } from '@/intelligence/queue/queueService'
 import { formatIntervalLabel, formatNextSyncLabel } from '@/intelligence/scheduling/scheduleUtils'
 import { formatDate } from '@/lib/format'
 import {
+  enqueueSourceSync,
   formatSyncStatusLabel,
   getSourceSyncJob,
-  runManualSync,
 } from '@/services/schedulerService'
 import type { Source } from '@/types/source'
 import styles from './SourceSyncPanel.module.css'
@@ -36,14 +38,19 @@ function statusBadgeClass(status: string): string {
 export function SourceSyncPanel({ source, onSyncComplete }: SourceSyncPanelProps) {
   const { user } = useAuth()
   const { notifyDataRefresh } = useDataRefresh()
-  const [isRunning, setIsRunning] = useState(false)
+  const { snapshot, processQueue } = useQueue()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [isEnqueueing, setIsEnqueueing] = useState(false)
 
-  const job = getSourceSyncJob(source, {
-    running: isRunning,
-    errorMessage: errorMessage && !successMessage ? errorMessage : null,
-  })
+  const queueJob = useMemo(
+    () => snapshot.jobs.find((job) => job.sourceId === source.id && job.status !== 'completed') ?? getActiveJobForSource(source.id),
+    [snapshot.jobs, source.id],
+  )
+
+  const job = getSourceSyncJob(source, { queueJob })
+  const isQueued = queueJob?.status === 'waiting' || queueJob?.status === 'running'
+  const queuePosition = queueJob?.status === 'waiting' ? getQueuePosition(queueJob.id) : 0
 
   const handleRunSync = async () => {
     if (!user) {
@@ -51,27 +58,31 @@ export function SourceSyncPanel({ source, onSyncComplete }: SourceSyncPanelProps
       return
     }
 
-    setIsRunning(true)
+    setIsEnqueueing(true)
     setErrorMessage(null)
     setSuccessMessage(null)
 
     try {
-      const result = await runManualSync(source, user.id)
+      const result = await enqueueSourceSync(source, user.id)
 
       if (!result.success) {
-        setErrorMessage(result.errorMessage ?? 'Sync failed')
+        setErrorMessage(result.errorMessage ?? 'Failed to queue sync')
         return
       }
 
-      setSuccessMessage(
-        `Sync complete — imported ${result.imported ?? 0}, skipped ${result.skipped ?? 0}, failed ${result.failed ?? 0}.`,
-      )
+      if (result.alreadyQueued) {
+        setSuccessMessage('Sync is already queued for this source.')
+      } else {
+        setSuccessMessage('Sync added to queue.')
+      }
+
+      await processQueue()
       notifyDataRefresh()
       onSyncComplete?.()
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Sync failed')
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to queue sync')
     } finally {
-      setIsRunning(false)
+      setIsEnqueueing(false)
     }
   }
 
@@ -117,13 +128,26 @@ export function SourceSyncPanel({ source, onSyncComplete }: SourceSyncPanelProps
         </div>
       </div>
 
+      {queueJob?.status === 'running' && (
+        <div className={styles.progress} role="status" aria-live="polite">
+          <div className={styles.progressBar}>
+            <div className={styles.progressFill} />
+          </div>
+          <p className={styles.progressLabel}>Queue job running…</p>
+        </div>
+      )}
+
+      {queueJob?.status === 'waiting' && queuePosition > 0 && (
+        <p className={styles.queuePosition}>Queue position: #{queuePosition}</p>
+      )}
+
       <button
         className={styles.syncButton}
         type="button"
         onClick={handleRunSync}
-        disabled={isRunning}
+        disabled={isEnqueueing || isQueued}
       >
-        {isRunning ? 'Syncing…' : 'Run Sync Now'}
+        {isEnqueueing ? 'Queueing…' : isQueued ? 'Queued' : 'Run Sync Now'}
       </button>
 
       {successMessage && (
@@ -135,6 +159,12 @@ export function SourceSyncPanel({ source, onSyncComplete }: SourceSyncPanelProps
       {errorMessage && (
         <p className={`${styles.message} ${styles.messageError}`} role="alert">
           {errorMessage}
+        </p>
+      )}
+
+      {queueJob?.error && (
+        <p className={`${styles.message} ${styles.messageError}`} role="alert">
+          {queueJob.error}
         </p>
       )}
     </div>

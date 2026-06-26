@@ -1,17 +1,18 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { useDataRefresh } from '@/contexts/DataRefreshContext'
+import { useQueue } from '@/contexts/QueueContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useSources } from '@/hooks/useSources'
+import { getActiveJobForSource } from '@/intelligence/queue/queueService'
 import { formatIntervalLabel, formatNextSyncLabel } from '@/intelligence/scheduling/scheduleUtils'
 import { formatDate } from '@/lib/format'
 import { sourceDetailPath } from '@/lib/constants'
 import {
   computeSchedulerStats,
+  enqueueSourceSync,
   formatSyncStatusLabel,
   getAllSourceSyncJobs,
-  runManualSync,
 } from '@/services/schedulerService'
 import type { SyncJob } from '@/types/syncJob'
 import styles from './SchedulerPage.module.css'
@@ -35,17 +36,16 @@ function statusClass(status: SyncJob['status']): string {
 
 interface SchedulerJobRowProps {
   job: SyncJob
-  sourceName: string
-  isRunning: boolean
+  isQueued: boolean
   onRunSync: () => void
 }
 
-function SchedulerJobRow({ job, sourceName, isRunning, onRunSync }: SchedulerJobRowProps) {
+function SchedulerJobRow({ job, isQueued, onRunSync }: SchedulerJobRowProps) {
   return (
     <tr className={styles.row}>
       <td className={styles.cell}>
         <Link to={sourceDetailPath(job.sourceId)} className={styles.sourceLink}>
-          {sourceName}
+          {job.sourceName}
         </Link>
       </td>
       <td className={styles.cell}>{job.connectorType}</td>
@@ -65,9 +65,9 @@ function SchedulerJobRow({ job, sourceName, isRunning, onRunSync }: SchedulerJob
           className={styles.syncButton}
           type="button"
           onClick={onRunSync}
-          disabled={isRunning}
+          disabled={isQueued}
         >
-          {isRunning ? 'Syncing…' : 'Run Sync Now'}
+          {isQueued ? 'Queued' : 'Run Sync Now'}
         </button>
       </td>
     </tr>
@@ -76,26 +76,13 @@ function SchedulerJobRow({ job, sourceName, isRunning, onRunSync }: SchedulerJob
 
 export function SchedulerPage() {
   const { user } = useAuth()
-  const { notifyDataRefresh } = useDataRefresh()
+  const { snapshot, processQueue } = useQueue()
   const { sources, isLoading, error, refetch } = useSources()
-  const [runningSourceIds, setRunningSourceIds] = useState<Set<string>>(new Set())
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
+  const [enqueueingIds, setEnqueueingIds] = useState<Set<string>>(new Set())
 
-  const jobOptions = useMemo(() => {
-    const options: Record<string, { running?: boolean; errorMessage?: string | null }> = {}
-
-    for (const source of sources) {
-      options[source.id] = {
-        running: runningSourceIds.has(source.id),
-        errorMessage: rowErrors[source.id] ?? null,
-      }
-    }
-
-    return options
-  }, [sources, runningSourceIds, rowErrors])
-
-  const jobs = useMemo(() => getAllSourceSyncJobs(sources, jobOptions), [sources, jobOptions])
-  const stats = computeSchedulerStats(jobs, runningSourceIds.size)
+  const jobs = useMemo(() => getAllSourceSyncJobs(sources), [sources, snapshot.jobs])
+  const stats = computeSchedulerStats(jobs)
 
   const handleRunSync = async (sourceId: string) => {
     const source = sources.find((item) => item.id === sourceId)
@@ -103,7 +90,7 @@ export function SchedulerPage() {
       return
     }
 
-    setRunningSourceIds((prev) => new Set(prev).add(sourceId))
+    setEnqueueingIds((prev) => new Set(prev).add(sourceId))
     setRowErrors((prev) => {
       const next = { ...prev }
       delete next[sourceId]
@@ -111,25 +98,25 @@ export function SchedulerPage() {
     })
 
     try {
-      const result = await runManualSync(source, user.id)
+      const result = await enqueueSourceSync(source, user.id)
 
       if (!result.success) {
         setRowErrors((prev) => ({
           ...prev,
-          [sourceId]: result.errorMessage ?? 'Sync failed',
+          [sourceId]: result.errorMessage ?? 'Failed to queue sync',
         }))
         return
       }
 
-      notifyDataRefresh()
+      await processQueue()
       await refetch()
     } catch (err) {
       setRowErrors((prev) => ({
         ...prev,
-        [sourceId]: err instanceof Error ? err.message : 'Sync failed',
+        [sourceId]: err instanceof Error ? err.message : 'Failed to queue sync',
       }))
     } finally {
-      setRunningSourceIds((prev) => {
+      setEnqueueingIds((prev) => {
         const next = new Set(prev)
         next.delete(sourceId)
         return next
@@ -140,7 +127,7 @@ export function SchedulerPage() {
   return (
     <PageContainer
       title="Scheduler"
-      description="Monitor sync schedules, due jobs, and run manual imports for intelligence sources."
+      description="Monitor sync schedules, due jobs, and queue manual imports for intelligence sources."
     >
       {isLoading && <div className={styles.stateBox}>Loading scheduler…</div>}
 
@@ -193,23 +180,30 @@ export function SchedulerPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {jobs.map((job) => (
-                    <Fragment key={job.id}>
-                      <SchedulerJobRow
-                        job={job}
-                        sourceName={job.sourceName}
-                        isRunning={runningSourceIds.has(job.sourceId)}
-                        onRunSync={() => handleRunSync(job.sourceId)}
-                      />
-                      {rowErrors[job.sourceId] && (
-                        <tr className={styles.errorRow}>
-                          <td className={styles.errorCell} colSpan={8}>
-                            {rowErrors[job.sourceId]}
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  ))}
+                  {jobs.map((job) => {
+                    const activeJob = getActiveJobForSource(job.sourceId)
+                    const isQueued =
+                      enqueueingIds.has(job.sourceId) ||
+                      activeJob?.status === 'waiting' ||
+                      activeJob?.status === 'running'
+
+                    return (
+                      <Fragment key={job.id}>
+                        <SchedulerJobRow
+                          job={job}
+                          isQueued={isQueued}
+                          onRunSync={() => handleRunSync(job.sourceId)}
+                        />
+                        {rowErrors[job.sourceId] && (
+                          <tr className={styles.errorRow}>
+                            <td className={styles.errorCell} colSpan={8}>
+                              {rowErrors[job.sourceId]}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
