@@ -213,7 +213,7 @@ export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps)
         </label>
 
         <label className={styles.field}>
-          <span className={styles.label}>Trust score</span>
+          <span className={styles.label}>Manual trust bonus</span>
           <input
             className={styles.input}
             type="number"

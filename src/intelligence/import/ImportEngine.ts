@@ -1,17 +1,52 @@
 import { duplicateEngine } from '@/intelligence/duplicate/DuplicateEngine'
 import { createDuplicateBatchState } from '@/intelligence/duplicate/DuplicateResult'
 import type { DuplicateEngineImportResult } from '@/intelligence/duplicate/DuplicateResult'
+import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { supabase } from '@/lib/supabase'
+import * as sourceService from '@/services/sourceService'
+import type { Source } from '@/types/source'
 
 export type ImportEngineResult = DuplicateEngineImportResult
+
+export interface ImportOptions {
+  source?: Source
+  downloaded?: number
+  connectorHealthy?: boolean
+}
+
+async function finalizeSourceImport(
+  source: Source,
+  downloaded: number,
+  result: ImportEngineResult,
+  connectorHealthy = true,
+): Promise<void> {
+  await sourceService.updateSourceAfterImport(source.id, result.imported + result.updated)
+  const refreshed = await sourceService.getSourceById(source.id) ?? source
+  await trustScoreEngine.recordImportAndRecalculate(
+    refreshed,
+    downloaded,
+    result,
+    connectorHealthy,
+  )
+}
 
 export async function importIntelligenceItems(
   items: IntelligenceItem[],
   userId: string,
+  options?: ImportOptions,
 ): Promise<ImportEngineResult> {
   if (items.length === 0) {
-    return { imported: 0, skipped: 0, updated: 0, failed: 0 }
+    const emptyResult = { imported: 0, skipped: 0, updated: 0, failed: 0 }
+    if (options?.source) {
+      await finalizeSourceImport(
+        options.source,
+        options.downloaded ?? 0,
+        emptyResult,
+        options.connectorHealthy,
+      )
+    }
+    return emptyResult
   }
 
   const index = await duplicateEngine.buildExistingIndex(items)
@@ -93,5 +128,16 @@ export async function importIntelligenceItems(
     }
   }
 
-  return { imported, skipped, updated, failed }
+  const result = { imported, skipped, updated, failed }
+
+  if (options?.source) {
+    await finalizeSourceImport(
+      options.source,
+      options.downloaded ?? items.length,
+      result,
+      options.connectorHealthy,
+    )
+  }
+
+  return result
 }

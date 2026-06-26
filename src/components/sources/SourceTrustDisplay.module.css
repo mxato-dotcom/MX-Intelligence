@@ -1,0 +1,82 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.compactWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.scoreLabel {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.scoreValue,
+.score {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.healthBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.healthExcellent {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.healthHealthy {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.healthWarning {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+}
+
+.healthPoor {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+}
+
+.healthOffline {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.trend {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trendUp {
+  color: #22c55e;
+}
+
+.trendDown {
+  color: #ef4444;
+}
+
+.trendFlat {
+  color: var(--color-text-muted);
+}

@@ -5,7 +5,6 @@ import { RSSNormalizer } from '@/intelligence/normalizers/RSSNormalizer'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { mapRssError } from '@/lib/rssErrors'
 import { supabase } from '@/lib/supabase'
-import * as sourceService from '@/services/sourceService'
 import type {
   FeedImportOptions,
   FeedImportResult,
@@ -263,12 +262,10 @@ async function executeImport(
   const selected = selectedIds && selectedIds.length > 0 ? new Set(selectedIds) : null
   const toImport = selected ? items.filter((item) => selected.has(item.id)) : items
 
-  const importResult = await importIntelligenceItems(toImport, userId)
-
-  await sourceService.updateSourceAfterImport(
-    source.id,
-    importResult.imported + importResult.updated,
-  )
+  const importResult = await importIntelligenceItems(toImport, userId, {
+    source,
+    downloaded,
+  })
 
   return {
     downloaded,

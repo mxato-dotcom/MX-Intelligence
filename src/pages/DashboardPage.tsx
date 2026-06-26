@@ -25,7 +25,7 @@ export function DashboardPage() {
     return null
   }
 
-  const { stats, latestArticles, latestVideos, dailyBrief, highlightsText } = data
+  const { stats, trustStats, latestArticles, latestVideos, dailyBrief, highlightsText } = data
   const email = user?.email ?? 'there'
 
   return (
@@ -49,6 +49,43 @@ export function DashboardPage() {
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Total Briefs</p>
           <p className={styles.statValue}>{stats.totalBriefs}</p>
+        </div>
+      </div>
+
+      <div className={styles.trustStatsGrid}>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Average Trust</p>
+          <p className={styles.statValue}>{trustStats.averageTrust}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Highest Trust Source</p>
+          <p className={styles.statValueSmall}>
+            {trustStats.highestTrustSource ?? '—'}
+          </p>
+          {trustStats.highestTrustSource && (
+            <p className={styles.statSubvalue}>{trustStats.highestTrustScore}</p>
+          )}
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Lowest Trust Source</p>
+          <p className={styles.statValueSmall}>
+            {trustStats.lowestTrustSource ?? '—'}
+          </p>
+          {trustStats.lowestTrustSource && (
+            <p className={styles.statSubvalue}>{trustStats.lowestTrustScore}</p>
+          )}
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Healthy Sources</p>
+          <p className={styles.statValue}>{trustStats.healthySources}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Warning Sources</p>
+          <p className={styles.statValue}>{trustStats.warningSources}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Offline Sources</p>
+          <p className={styles.statValue}>{trustStats.offlineSources}</p>
         </div>
       </div>
 

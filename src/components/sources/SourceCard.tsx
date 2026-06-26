@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { SourceFeedActions } from '@/components/sources/SourceFeedActions'
 import { SourceSyncPanel } from '@/components/sources/SourceSyncPanel'
+import { SourceTrustDisplay } from '@/components/sources/SourceTrustDisplay'
 import { formatDate } from '@/lib/format'
 import { sourceDetailPath } from '@/lib/constants'
 import type { Source } from '@/types/source'
@@ -41,7 +42,7 @@ export function SourceCard({ source, onSourceUpdated }: SourceCardProps) {
           Priority: <span className={styles.metaLabel}>{source.priority}</span>
         </span>
         <span className={styles.metaItem}>
-          Trust: <span className={styles.metaLabel}>{source.trust_score}</span>
+          <SourceTrustDisplay source={source} compact />
         </span>
         <span className={styles.metaItem}>
           Created: <span className={styles.metaLabel}>{formatDate(source.created_at)}</span>

@@ -1,10 +1,14 @@
 import { ConnectorCard } from '@/components/connectors/ConnectorCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { CONNECTOR_CATALOG } from '@/intelligence/connectors/connectorCatalog'
+import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
+import { useSources } from '@/hooks/useSources'
 import styles from './ConnectorsPage.module.css'
 
 export function ConnectorsPage() {
+  const { sources } = useSources()
   const availableCount = CONNECTOR_CATALOG.filter((entry) => entry.implemented).length
+  const trustSummaries = trustScoreEngine.computeConnectorTrustSummaries(sources)
 
   return (
     <PageContainer
@@ -19,7 +23,11 @@ export function ConnectorsPage() {
 
       <div className={styles.grid}>
         {CONNECTOR_CATALOG.map((connector) => (
-          <ConnectorCard key={connector.type} connector={connector} />
+          <ConnectorCard
+            key={connector.type}
+            connector={connector}
+            trustSummary={trustSummaries.find((entry) => entry.connectorType === connector.type)}
+          />
         ))}
       </div>
     </PageContainer>

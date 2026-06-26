@@ -90,6 +90,17 @@
   color: var(--color-text-muted);
 }
 
+.trustSummary {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.trustSourceCount {
+  margin-left: var(--space-xs);
+  color: var(--color-text-muted);
+}
+
 .footer {
   margin-top: var(--space-sm);
 }

@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import type { ConnectorCatalogEntry } from '@/intelligence/connectors/connectorCatalog'
+import type { ConnectorTrustSummary } from '@/intelligence/scoring/TrustScoreEngine'
 import { ROUTES } from '@/lib/constants'
 import styles from './ConnectorCard.module.css'
 
 interface ConnectorCardProps {
   connector: ConnectorCatalogEntry
+  trustSummary?: ConnectorTrustSummary
 }
 
 function CapabilityBadge({ label, enabled }: { label: string; enabled: boolean }) {
@@ -21,7 +23,7 @@ function CapabilityBadge({ label, enabled }: { label: string; enabled: boolean }
   )
 }
 
-export function ConnectorCard({ connector }: ConnectorCardProps) {
+export function ConnectorCard({ connector, trustSummary }: ConnectorCardProps) {
   const isAvailable = connector.status === 'available' && connector.implemented
   const newSourceUrl = `${ROUTES.SOURCES_NEW}?source_type=${encodeURIComponent(connector.type)}`
 
@@ -48,6 +50,15 @@ export function ConnectorCard({ connector }: ConnectorCardProps) {
         <CapabilityBadge label="Import" enabled={connector.capabilities.import} />
         <CapabilityBadge label="Preview" enabled={connector.capabilities.preview} />
       </div>
+
+      {trustSummary && trustSummary.sourceCount > 0 && (
+        <p className={styles.trustSummary}>
+          Average trust: <strong>{trustSummary.averageTrust}</strong>
+          <span className={styles.trustSourceCount}>
+            ({trustSummary.sourceCount} source{trustSummary.sourceCount === 1 ? '' : 's'})
+          </span>
+        </p>
+      )}
 
       <div className={styles.footer}>
         {isAvailable ? (

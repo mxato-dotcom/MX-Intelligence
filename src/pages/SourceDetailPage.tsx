@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { SourceConnectorPanel } from '@/components/sources/SourceConnectorPanel'
+import { SourceTrustDisplay } from '@/components/sources/SourceTrustDisplay'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useSource } from '@/hooks/useSource'
 import { formatDate } from '@/lib/format'
@@ -107,8 +108,10 @@ export function SourceDetailPage() {
             <span className={styles.fieldValue}>{source.priority}</span>
           </div>
           <div className={styles.field}>
-            <span className={styles.fieldLabel}>Trust score</span>
-            <span className={styles.fieldValue}>{source.trust_score}</span>
+            <span className={styles.fieldLabel}>Trust & health</span>
+            <span className={styles.fieldValue}>
+              <SourceTrustDisplay source={source} />
+            </span>
           </div>
           <div className={styles.field}>
             <span className={styles.fieldLabel}>Update interval</span>

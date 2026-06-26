@@ -9,6 +9,7 @@ import {
 } from '@/intelligence/queue/queueService'
 import * as connectorService from '@/services/connectorService'
 import * as sourceService from '@/services/sourceService'
+import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 
 const CONNECTOR_NOT_IMPLEMENTED = 'Connector not implemented yet.'
 
@@ -65,6 +66,15 @@ class QueueManager {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sync failed'
       failJob(nextJob.id, message)
+
+      try {
+        const failedSource = await sourceService.getSourceById(nextJob.sourceId)
+        if (failedSource) {
+          await trustScoreEngine.recordFailedSync(failedSource)
+        }
+      } catch {
+        // Scoring failure should not block queue processing
+      }
     } finally {
       this.isProcessing = false
       await this.processNext()

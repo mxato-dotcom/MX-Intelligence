@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { SourceTrustDisplay } from '@/components/sources/SourceTrustDisplay'
 import { useQueue } from '@/contexts/QueueContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useSources } from '@/hooks/useSources'
@@ -15,6 +16,7 @@ import {
   getAllSourceSyncJobs,
 } from '@/services/schedulerService'
 import type { SyncJob } from '@/types/syncJob'
+import type { Source } from '@/types/source'
 import styles from './SchedulerPage.module.css'
 
 function statusClass(status: SyncJob['status']): string {
@@ -36,11 +38,12 @@ function statusClass(status: SyncJob['status']): string {
 
 interface SchedulerJobRowProps {
   job: SyncJob
+  source: Source | undefined
   isQueued: boolean
   onRunSync: () => void
 }
 
-function SchedulerJobRow({ job, isQueued, onRunSync }: SchedulerJobRowProps) {
+function SchedulerJobRow({ job, source, isQueued, onRunSync }: SchedulerJobRowProps) {
   return (
     <tr className={styles.row}>
       <td className={styles.cell}>
@@ -51,6 +54,9 @@ function SchedulerJobRow({ job, isQueued, onRunSync }: SchedulerJobRowProps) {
       <td className={styles.cell}>{job.connectorType}</td>
       <td className={styles.cell}>
         <span className={statusClass(job.status)}>{formatSyncStatusLabel(job.status)}</span>
+      </td>
+      <td className={styles.cell}>
+        {source ? <SourceTrustDisplay source={source} compact /> : '—'}
       </td>
       <td className={styles.cell}>
         {job.lastSyncAt ? formatDate(job.lastSyncAt) : 'Never'}
@@ -172,6 +178,7 @@ export function SchedulerPage() {
                     <th className={styles.th}>Source</th>
                     <th className={styles.th}>Connector</th>
                     <th className={styles.th}>Status</th>
+                    <th className={styles.th}>Health</th>
                     <th className={styles.th}>Last sync</th>
                     <th className={styles.th}>Next sync</th>
                     <th className={styles.th}>Interval</th>
@@ -191,12 +198,13 @@ export function SchedulerPage() {
                       <Fragment key={job.id}>
                         <SchedulerJobRow
                           job={job}
+                          source={sources.find((item) => item.id === job.sourceId)}
                           isQueued={isQueued}
                           onRunSync={() => handleRunSync(job.sourceId)}
                         />
                         {rowErrors[job.sourceId] && (
                           <tr className={styles.errorRow}>
-                            <td className={styles.errorCell} colSpan={8}>
+                            <td className={styles.errorCell} colSpan={9}>
                               {rowErrors[job.sourceId]}
                             </td>
                           </tr>

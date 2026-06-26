@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import type { CreateSourceInput, Source, UpdateSourceInput } from '@/types/source'
 
 export async function getSources(): Promise<Source[]> {
@@ -47,7 +48,11 @@ export async function createSource(data: CreateSourceInput, userId: string): Pro
     throw error
   }
 
-  return row as Source
+  const created = row as Source
+  trustScoreEngine.setManualOverride(created.id, created.trust_score)
+  await trustScoreEngine.applyScoreToSource(created)
+
+  return created
 }
 
 export async function updateSource(id: string, data: UpdateSourceInput): Promise<Source> {
@@ -75,7 +80,36 @@ export async function updateSource(id: string, data: UpdateSourceInput): Promise
     throw error
   }
 
-  return row as Source
+  const updated = row as Source
+
+  if (data.trust_score !== undefined) {
+    trustScoreEngine.setManualOverride(id, data.trust_score)
+    await trustScoreEngine.applyScoreToSource(updated)
+  }
+
+  return updated
+}
+
+export async function updateSourceScoringFields(
+  id: string,
+  trustScore: number,
+  status: string,
+): Promise<Source> {
+  const { data, error } = await supabase
+    .from('sources')
+    .update({
+      trust_score: trustScore,
+      status,
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data as Source
 }
 
 export async function deleteSource(id: string): Promise<void> {

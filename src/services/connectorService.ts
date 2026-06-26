@@ -1,5 +1,6 @@
 import { getConnector } from '@/intelligence/connector/connectorRegistry'
 import { importIntelligenceItems } from '@/intelligence/import/ImportEngine'
+import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import type {
   ConnectorHealthResult,
@@ -7,7 +8,6 @@ import type {
   ConnectorValidationResult,
 } from '@/intelligence/types'
 import { mapRssError } from '@/lib/rssErrors'
-import * as sourceService from '@/services/sourceService'
 import type { FeedImportOptions, FeedImportResult } from '@/types/rss'
 import type { Source } from '@/types/source'
 
@@ -33,12 +33,10 @@ async function executeImport(
   const downloaded = items.length
   const toImport = filterSelectedItems(items, selectedIds)
 
-  const importResult = await importIntelligenceItems(toImport, userId)
-
-  await sourceService.updateSourceAfterImport(
-    source.id,
-    importResult.imported + importResult.updated,
-  )
+  const importResult = await importIntelligenceItems(toImport, userId, {
+    source,
+    downloaded,
+  })
 
   return {
     downloaded,
@@ -55,7 +53,9 @@ export async function validateSource(source: Source): Promise<ConnectorValidatio
 }
 
 export async function runHealthCheck(source: Source): Promise<ConnectorHealthResult> {
-  return getConnector(source.source_type).healthCheck(source)
+  const result = await getConnector(source.source_type).healthCheck(source)
+  trustScoreEngine.recordHealthCheck(source.id, result.success && result.status === 'healthy')
+  return result
 }
 
 export async function previewFeed(source: Source): Promise<ConnectorPreviewResult> {
