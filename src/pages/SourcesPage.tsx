@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { SourceList } from '@/components/sources/SourceList'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useSources } from '@/hooks/useSources'
+import { useFusionClusters } from '@/hooks/useFusionClusters'
 import { ROUTES } from '@/lib/constants'
 import type { Source } from '@/types/source'
 import styles from './SourcesPage.module.css'
@@ -20,6 +21,7 @@ function computeStats(sources: Source[]) {
 
 export function SourcesPage() {
   const { sources, isLoading, error, refetch } = useSources()
+  useFusionClusters()
   const stats = computeStats(sources)
 
   return (

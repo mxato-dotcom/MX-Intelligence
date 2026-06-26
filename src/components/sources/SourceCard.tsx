@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { SourceFeedActions } from '@/components/sources/SourceFeedActions'
 import { SourceSyncPanel } from '@/components/sources/SourceSyncPanel'
 import { SourceTrustDisplay } from '@/components/sources/SourceTrustDisplay'
+import { useSourceClusterSummary } from '@/hooks/useSourceClusterSummary'
 import { formatDate } from '@/lib/format'
 import { sourceDetailPath } from '@/lib/constants'
 import type { Source } from '@/types/source'
@@ -14,6 +15,7 @@ interface SourceCardProps {
 
 export function SourceCard({ source, onSourceUpdated }: SourceCardProps) {
   const isEnabled = source.status === 'enabled' && source.active
+  const clusterSummary = useSourceClusterSummary(source.name)
 
   return (
     <div className={styles.card}>
@@ -47,6 +49,14 @@ export function SourceCard({ source, onSourceUpdated }: SourceCardProps) {
         <span className={styles.metaItem}>
           Created: <span className={styles.metaLabel}>{formatDate(source.created_at)}</span>
         </span>
+        {clusterSummary.clusterCount > 0 && (
+          <span className={styles.metaItem}>
+            Clusters: <span className={styles.metaLabel}>{clusterSummary.clusterCount}</span>
+            {clusterSummary.confirmedCount > 0 && (
+              <span className={styles.metaLabel}> · {clusterSummary.confirmedCount} confirmed</span>
+            )}
+          </span>
+        )}
       </div>
 
       <SourceSyncPanel source={source} onSyncComplete={onSourceUpdated} />

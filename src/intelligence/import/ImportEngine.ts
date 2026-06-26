@@ -2,6 +2,7 @@ import { duplicateEngine } from '@/intelligence/duplicate/DuplicateEngine'
 import { createDuplicateBatchState } from '@/intelligence/duplicate/DuplicateResult'
 import type { DuplicateEngineImportResult } from '@/intelligence/duplicate/DuplicateResult'
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
+import { rebuildFusionClusters } from '@/services/fusionClusterService'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { supabase } from '@/lib/supabase'
 import * as sourceService from '@/services/sourceService'
@@ -29,6 +30,7 @@ async function finalizeSourceImport(
     result,
     connectorHealthy,
   )
+  await rebuildFusionClusters()
 }
 
 export async function importIntelligenceItems(

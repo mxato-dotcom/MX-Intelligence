@@ -1,3 +1,4 @@
+import { FusionClusterCard } from '@/components/fusion/FusionClusterCard'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
@@ -25,7 +26,7 @@ export function DashboardPage() {
     return null
   }
 
-  const { stats, trustStats, latestArticles, latestVideos, dailyBrief, highlightsText } = data
+  const { stats, trustStats, fusionStats, topClusters, latestArticles, latestVideos, dailyBrief, highlightsText } = data
   const email = user?.email ?? 'there'
 
   return (
@@ -88,6 +89,56 @@ export function DashboardPage() {
           <p className={styles.statValue}>{trustStats.offlineSources}</p>
         </div>
       </div>
+
+      <div className={styles.fusionStatsGrid}>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Total Clusters</p>
+          <p className={styles.statValue}>{fusionStats.totalClusters}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Intelligence Clusters</p>
+          <p className={styles.statValue}>{fusionStats.intelligenceClusters}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Confirmed Events</p>
+          <p className={styles.statValue}>{fusionStats.confirmedEvents}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Single-source Events</p>
+          <p className={styles.statValue}>{fusionStats.singleSourceEvents}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Conflicting Reports</p>
+          <p className={styles.statValue}>{fusionStats.conflictingReports}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Average Confidence</p>
+          <p className={styles.statValue}>{fusionStats.averageConfidence}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Top Intelligence Cluster</p>
+          <p className={styles.statValueSmall}>
+            {fusionStats.topClusterTitle ?? '—'}
+          </p>
+          {fusionStats.topClusterTitle && (
+            <p className={styles.statSubvalue}>{fusionStats.topClusterConfidence}%</p>
+          )}
+        </div>
+      </div>
+
+      {topClusters.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>Intelligence Clusters</h3>
+            <Link to={ROUTES.ARTICLES} className={styles.sectionLink}>View articles</Link>
+          </div>
+          <div className={styles.clusterList}>
+            {topClusters.map((cluster) => (
+              <FusionClusterCard key={cluster.id} cluster={cluster} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className={styles.contentGrid}>
         <section className={styles.section}>

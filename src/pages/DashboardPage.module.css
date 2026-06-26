@@ -33,6 +33,18 @@
   gap: var(--space-md);
 }
 
+.fusionStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.clusterList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
 .statCard {
   padding: var(--space-lg);
   background: var(--color-bg-surface);

@@ -5,14 +5,18 @@ import type { DailyBrief } from '@/types/brief'
 import type { Video } from '@/types/video'
 import type { Source } from '@/types/source'
 import type { TrustDashboardStats } from '@/intelligence/scoring/TrustScoreEngine'
+import type { FusionDashboardStats, IntelligenceCluster } from '@/intelligence/fusion/FusionCluster'
 import * as dashboardService from '@/services/dashboardService'
 import * as sourceService from '@/services/sourceService'
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
+import { rebuildFusionClusters, getFusionDashboardStats, getFusionClusters } from '@/services/fusionClusterService'
 import type { DashboardStats } from '@/services/dashboardService'
 
 export interface DashboardData {
   stats: DashboardStats
   trustStats: TrustDashboardStats
+  fusionStats: FusionDashboardStats
+  topClusters: IntelligenceCluster[]
   sources: Source[]
   latestArticles: Article[]
   latestVideos: Video[]
@@ -43,6 +47,9 @@ export function useDashboard() {
         ])
 
         const trustStats = trustScoreEngine.computeDashboardStats(sources)
+        await rebuildFusionClusters()
+        const fusionStats = getFusionDashboardStats()
+        const topClusters = getFusionClusters().slice(0, 5)
 
         const highlightsText =
           dailyBrief?.content?.trim() ||
@@ -52,6 +59,8 @@ export function useDashboard() {
           setData({
             stats,
             trustStats,
+            fusionStats,
+            topClusters,
             sources,
             latestArticles,
             latestVideos,
