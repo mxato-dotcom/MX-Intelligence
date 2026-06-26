@@ -14,6 +14,8 @@ import { rebuildFusionClusters, getFusionDashboardStats, getFusionClusters } fro
 import { getEntityDashboardStats } from '@/services/entityExtractionService'
 import type { EntityDashboardStats } from '@/services/entityService'
 import type { DashboardStats } from '@/services/dashboardService'
+import type { TimelineEvent } from '@/types/timeline'
+import { getRecentTimelineEvents, getTimeline } from '@/services/timelineService'
 
 export interface DashboardData {
   stats: DashboardStats
@@ -25,6 +27,7 @@ export interface DashboardData {
   latestArticles: Article[]
   latestVideos: Video[]
   intelligenceBrief: IntelligenceDailyBrief | null
+  recentTimelineEvents: TimelineEvent[]
 }
 
 export function useDashboard() {
@@ -41,12 +44,14 @@ export function useDashboard() {
       setError(null)
 
       try {
-        const [latestArticles, latestVideos, stats, intelligenceBrief, sources] = await Promise.all([
+        const [latestArticles, latestVideos, stats, intelligenceBrief, sources, timeline] =
+          await Promise.all([
           dashboardService.getLatestArticles(5),
           dashboardService.getLatestVideos(5),
           dashboardService.getDashboardStats(),
           getDashboardBrief(),
           sourceService.getSources(),
+          getTimeline(),
         ])
 
         const trustStats = trustScoreEngine.computeDashboardStats(sources)
@@ -54,6 +59,7 @@ export function useDashboard() {
         const fusionStats = getFusionDashboardStats()
         const topClusters = getFusionClusters().slice(0, 5)
         const entityStats = await getEntityDashboardStats()
+        const recentTimelineEvents = getRecentTimelineEvents(timeline, 5)
 
         if (isMounted) {
           setData({
@@ -66,6 +72,7 @@ export function useDashboard() {
             latestArticles,
             latestVideos,
             intelligenceBrief,
+            recentTimelineEvents,
           })
         }
       } catch (err) {

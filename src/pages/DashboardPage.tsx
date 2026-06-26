@@ -1,5 +1,6 @@
 import { FusionClusterCard } from '@/components/fusion/FusionClusterCard'
 import { DailyBriefCard } from '@/components/dashboard/DailyBriefCard'
+import { TimelineDashboardCard } from '@/components/dashboard/TimelineDashboardCard'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
@@ -36,6 +37,7 @@ export function DashboardPage() {
     latestArticles,
     latestVideos,
     intelligenceBrief,
+    recentTimelineEvents,
   } = data
   const email = user?.email ?? 'there'
 
@@ -203,6 +205,8 @@ export function DashboardPage() {
       )}
 
       <DailyBriefCard brief={intelligenceBrief} />
+
+      <TimelineDashboardCard events={recentTimelineEvents} />
 
       <div className={styles.contentGrid}>
         <section className={styles.section}>
