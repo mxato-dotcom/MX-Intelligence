@@ -502,6 +502,30 @@ export async function getEntityDashboardStats(): Promise<EntityDashboardStats> {
   }
 }
 
+export async function deleteEntityById(entityId: string): Promise<void> {
+  const { error } = await supabase.from('article_entities').delete().eq('id', entityId)
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function updateEntityRecord(
+  entityId: string,
+  patch: Partial<{
+    entity_type: EntityType
+    entity_text: string
+    normalized_text: string
+    confidence: number
+  }>,
+): Promise<void> {
+  const { error } = await supabase.from('article_entities').update(patch).eq('id', entityId)
+
+  if (error) {
+    throw error
+  }
+}
+
 export async function getSourceEntityStats(sourceName: string): Promise<SourceEntityStats> {
   const normalizedSource = safeTrim(sourceName)
   const { data: articles, error: articlesError } = await supabase

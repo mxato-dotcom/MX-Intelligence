@@ -1,6 +1,14 @@
 import { DICTIONARY_LOOKUP } from '@/intelligence/entities/dictionaries'
 import type { ExtractionResult } from '@/intelligence/entities/ExtractionResult'
 import { createEmptyExtractionResult } from '@/intelligence/entities/ExtractionResult'
+import {
+  filterEntityQuality,
+  isDictionaryEntity,
+  isLikelyOrganizationName,
+  isLikelyPersonName,
+  isSourceLikePhrase,
+  shouldKeepKeyword,
+} from '@/intelligence/entities/entityQuality'
 import { EntityRegistry, normalizeEntityValue } from '@/intelligence/entities/EntityRegistry'
 import type { EntityType } from '@/intelligence/entities/EntityType'
 import type { Article } from '@/types/article'
@@ -10,6 +18,8 @@ import { safeString, safeTrim } from '@/lib/safeString'
 const CONFIDENCE_REGEX = 100
 const CONFIDENCE_DICTIONARY = 95
 const CONFIDENCE_HEURISTIC = 70
+const CONFIDENCE_PERSON = 85
+const CONFIDENCE_ORGANIZATION = 80
 
 const PATTERNS: Array<{
   type: EntityType
@@ -63,7 +73,9 @@ const PATTERNS: Array<{
   },
 ]
 
-const CAPITALIZED_PHRASE_REGEX = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g
+const PERSON_NAME_REGEX = /\b[A-Z][a-z]+(?:['-][A-Z]?[a-z]+)?\s+[A-Z][a-z]+(?:['-][A-Z]?[a-z]+)?\b/g
+const ORGANIZATION_PHRASE_REGEX =
+  /\b[A-Z][A-Za-z0-9&.'-]*(?:\s+[A-Z][A-Za-z0-9&.'-]*)*(?:\s+(?:Inc|Ltd|Limited|Group|Foundation|Agency|Ministry|University|Company|Corp|Corporation|Labs|Bank|Authority|News))\b\.?/g
 
 export interface EntityExtractorProvider {
   extractFromText(text: string): ExtractionResult
@@ -110,42 +122,78 @@ function addDictionaryMatches(registry: EntityRegistry, text: string): void {
   }
 }
 
-function addCapitalizedHeuristics(registry: EntityRegistry, text: string): void {
-  CAPITALIZED_PHRASE_REGEX.lastIndex = 0
-  let match = CAPITALIZED_PHRASE_REGEX.exec(text)
+function addPersonNameMatches(registry: EntityRegistry, text: string): void {
+  PERSON_NAME_REGEX.lastIndex = 0
+  let match = PERSON_NAME_REGEX.exec(text)
 
   while (match) {
     const phrase = match[0]
-    const lower = phrase.toLowerCase()
-    if (DICTIONARY_LOOKUP.has(lower)) {
-      match = CAPITALIZED_PHRASE_REGEX.exec(text)
+    if (!isLikelyPersonName(phrase) || isDictionaryEntity(phrase)) {
+      match = PERSON_NAME_REGEX.exec(text)
       continue
     }
 
-    const type: EntityType =
-      phrase.split(' ').length >= 2 ? 'Organization' : 'Person'
-
     registry.register({
-      type,
+      type: 'Person',
       text: phrase,
       normalizedValue: normalizeEntityValue(phrase),
-      confidence: CONFIDENCE_HEURISTIC,
+      confidence: CONFIDENCE_PERSON,
       position: match.index,
     })
-    match = CAPITALIZED_PHRASE_REGEX.exec(text)
+    match = PERSON_NAME_REGEX.exec(text)
+  }
+}
+
+function addOrganizationMatches(registry: EntityRegistry, text: string): void {
+  ORGANIZATION_PHRASE_REGEX.lastIndex = 0
+  let match = ORGANIZATION_PHRASE_REGEX.exec(text)
+
+  while (match) {
+    const phrase = match[0]
+    if (
+      isLikelyPersonName(phrase) ||
+      isSourceLikePhrase(phrase) ||
+      !isLikelyOrganizationName(phrase)
+    ) {
+      match = ORGANIZATION_PHRASE_REGEX.exec(text)
+      continue
+    }
+
+    const dictionary = DICTIONARY_LOOKUP.get(phrase.toLowerCase())
+    registry.register({
+      type: dictionary?.type === 'Company' ? 'Company' : 'Organization',
+      text: phrase,
+      normalizedValue: dictionary?.canonical ?? normalizeEntityValue(phrase),
+      confidence: CONFIDENCE_ORGANIZATION,
+      position: match.index,
+    })
+    match = ORGANIZATION_PHRASE_REGEX.exec(text)
   }
 }
 
 function addKeywordEntities(registry: EntityRegistry, text: string): void {
+  const protectedTerms = new Set<string>()
+  for (const entity of registry.getEntities()) {
+    if (entity.type === 'Keyword') {
+      continue
+    }
+    protectedTerms.add(entity.normalizedValue.toLowerCase())
+    for (const word of entity.normalizedValue.toLowerCase().split(/\s+/)) {
+      if (word.length >= 3) {
+        protectedTerms.add(word)
+      }
+    }
+  }
+
   const words = text
     .toLowerCase()
     .replace(/[^a-z0-9\s#@]/g, ' ')
     .split(/\s+/)
-    .filter((word) => word.length > 4)
+    .filter((word) => word.length >= 5)
 
   const counts = new Map<string, number>()
   for (const word of words) {
-    if (DICTIONARY_LOOKUP.has(word)) {
+    if (!shouldKeepKeyword(word, protectedTerms)) {
       continue
     }
     counts.set(word, (counts.get(word) ?? 0) + 1)
@@ -184,11 +232,14 @@ function extractWithRegistry(text: string): ExtractionResult {
   }
 
   addDictionaryMatches(registry, trimmed)
-  addCapitalizedHeuristics(registry, trimmed)
+  addPersonNameMatches(registry, trimmed)
+  addOrganizationMatches(registry, trimmed)
   addKeywordEntities(registry, trimmed)
 
+  const entities = filterEntityQuality(registry.getEntities())
+
   return {
-    entities: registry.getEntities(),
+    entities,
     sourceTextLength: trimmed.length,
     extractedAt: new Date().toISOString(),
   }
@@ -205,7 +256,6 @@ export class RuleBasedExtractor implements EntityExtractorProvider {
       safeString(article.summary),
       safeString(article.content),
       safeString(article.category),
-      safeString(article.source),
     ].join('\n')
 
     return extractWithRegistry(combined)
@@ -217,7 +267,6 @@ export class RuleBasedExtractor implements EntityExtractorProvider {
       safeString(item.summary),
       safeString(item.content),
       safeString(item.category),
-      safeString(item.sourceName),
       safeString(item.url),
       item.tags.join(' '),
     ].join('\n')

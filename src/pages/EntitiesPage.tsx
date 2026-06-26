@@ -10,6 +10,10 @@ import {
   type BackfillStats,
 } from '@/services/entityBackfillService'
 import {
+  cleanupEntities,
+  type EntityCleanupResult,
+} from '@/services/entityCleanupService'
+import {
   getAggregatedEntities,
   getEntityTypeDistribution,
   getTotalEntityCount,
@@ -31,6 +35,9 @@ export function EntitiesPage() {
   const [isBackfilling, setIsBackfilling] = useState(false)
   const [backfillResult, setBackfillResult] = useState<BackfillRunResult | null>(null)
   const [backfillError, setBackfillError] = useState<string | null>(null)
+  const [isCleaning, setIsCleaning] = useState(false)
+  const [cleanupResult, setCleanupResult] = useState<EntityCleanupResult | null>(null)
+  const [cleanupError, setCleanupError] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -80,6 +87,23 @@ export function EntitiesPage() {
     }
   }
 
+  const handleCleanup = async () => {
+    setIsCleaning(true)
+    setCleanupError(null)
+    setCleanupResult(null)
+
+    try {
+      const result = await cleanupEntities()
+      setCleanupResult(result)
+      notifyDataRefresh()
+      await loadData()
+    } catch (err) {
+      setCleanupError(err instanceof Error ? err.message : 'Entity cleanup failed')
+    } finally {
+      setIsCleaning(false)
+    }
+  }
+
   return (
     <PageContainer
       title="Entities"
@@ -87,14 +111,45 @@ export function EntitiesPage() {
     >
       <div className={styles.toolbar}>
         <button
+          className={styles.cleanupButton}
+          type="button"
+          onClick={handleCleanup}
+          disabled={isCleaning || isBackfilling}
+        >
+          {isCleaning ? 'Cleaning entities…' : 'Clean & Reclassify Entities'}
+        </button>
+        <button
           className={styles.backfillButton}
           type="button"
           onClick={handleBackfill}
-          disabled={isBackfilling}
+          disabled={isBackfilling || isCleaning}
         >
           {isBackfilling ? 'Running entity backfill…' : 'Run Entity Backfill'}
         </button>
       </div>
+
+      {isCleaning && (
+        <div className={styles.progressBox} role="status" aria-live="polite">
+          Scanning stored entities, reclassifying names, and removing low-quality matches…
+        </div>
+      )}
+
+      {cleanupResult && (
+        <div className={styles.successBox}>
+          <h3 className={styles.successTitle}>Cleanup complete</h3>
+          <p>Entities scanned: {cleanupResult.entitiesScanned}</p>
+          <p>Reclassified: {cleanupResult.reclassified}</p>
+          <p>Removed: {cleanupResult.removed}</p>
+          <p>Merged: {cleanupResult.merged}</p>
+          <p>Failed: {cleanupResult.failed}</p>
+        </div>
+      )}
+
+      {cleanupError && (
+        <div className={`${styles.stateBox} ${styles.stateBoxError}`} role="alert">
+          {cleanupError}
+        </div>
+      )}
 
       {isBackfilling && (
         <div className={styles.progressBox} role="status" aria-live="polite">
