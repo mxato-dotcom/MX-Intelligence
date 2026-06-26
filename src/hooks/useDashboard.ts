@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
+import type { IntelligenceDailyBrief } from '@/intelligence/brief/BriefTypes'
 import type { Article } from '@/types/article'
-import type { DailyBrief } from '@/types/brief'
 import type { Video } from '@/types/video'
 import type { Source } from '@/types/source'
 import type { TrustDashboardStats } from '@/intelligence/scoring/TrustScoreEngine'
 import type { FusionDashboardStats, IntelligenceCluster } from '@/intelligence/fusion/FusionCluster'
 import * as dashboardService from '@/services/dashboardService'
 import * as sourceService from '@/services/sourceService'
+import { getLatestDailyBrief } from '@/services/dailyBriefService'
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import { rebuildFusionClusters, getFusionDashboardStats, getFusionClusters } from '@/services/fusionClusterService'
 import { getEntityDashboardStats } from '@/services/entityExtractionService'
@@ -23,8 +24,7 @@ export interface DashboardData {
   sources: Source[]
   latestArticles: Article[]
   latestVideos: Video[]
-  dailyBrief: DailyBrief | null
-  highlightsText: string
+  intelligenceBrief: IntelligenceDailyBrief | null
 }
 
 export function useDashboard() {
@@ -41,11 +41,11 @@ export function useDashboard() {
       setError(null)
 
       try {
-        const [latestArticles, latestVideos, stats, dailyBrief, sources] = await Promise.all([
+        const [latestArticles, latestVideos, stats, intelligenceBrief, sources] = await Promise.all([
           dashboardService.getLatestArticles(5),
           dashboardService.getLatestVideos(5),
           dashboardService.getDashboardStats(),
-          dashboardService.getLatestDailyBrief(),
+          getLatestDailyBrief(),
           sourceService.getSources(),
         ])
 
@@ -54,10 +54,6 @@ export function useDashboard() {
         const fusionStats = getFusionDashboardStats()
         const topClusters = getFusionClusters().slice(0, 5)
         const entityStats = await getEntityDashboardStats()
-
-        const highlightsText =
-          dailyBrief?.content?.trim() ||
-          dashboardService.generatePlaceholderBrief(latestArticles, latestVideos)
 
         if (isMounted) {
           setData({
@@ -69,8 +65,7 @@ export function useDashboard() {
             sources,
             latestArticles,
             latestVideos,
-            dailyBrief,
-            highlightsText,
+            intelligenceBrief,
           })
         }
       } catch (err) {

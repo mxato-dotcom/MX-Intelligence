@@ -4,6 +4,7 @@ import type { DuplicateEngineImportResult } from '@/intelligence/duplicate/Dupli
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import { rebuildFusionClusters } from '@/services/fusionClusterService'
 import { extractAndStoreForArticleIds } from '@/services/entityExtractionService'
+import { generateAndStoreDailyBrief } from '@/services/dailyBriefService'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import { supabase } from '@/lib/supabase'
@@ -35,6 +36,12 @@ async function finalizeSourceImport(
   )
   await rebuildFusionClusters()
   await extractAndStoreForArticleIds(processedArticleIds)
+
+  try {
+    await generateAndStoreDailyBrief()
+  } catch {
+    // Brief generation should not block import completion
+  }
 }
 
 export async function importIntelligenceItems(

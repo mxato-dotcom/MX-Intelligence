@@ -3,6 +3,7 @@ import type { EntityType } from '@/intelligence/entities/EntityType'
 import { isEntityType } from '@/intelligence/entities/EntityType'
 import { supabase } from '@/lib/supabase'
 import { safeTrim } from '@/lib/safeString'
+import { isMissingTableError } from '@/lib/supabaseErrors'
 
 export interface EntitySearchFilters {
   type?: EntityType
@@ -24,6 +25,15 @@ export interface EntityDashboardStats {
   topTechnologies: TopEntitySummary[]
   topCompanies: TopEntitySummary[]
   topKeywords: TopEntitySummary[]
+}
+
+export const EMPTY_ENTITY_DASHBOARD_STATS: EntityDashboardStats = {
+  totalEntities: 0,
+  topOrganizations: [],
+  topCountries: [],
+  topTechnologies: [],
+  topCompanies: [],
+  topKeywords: [],
 }
 
 export interface EntityInsertResult {
@@ -279,6 +289,10 @@ export async function getTopEntities(
     .eq('entity_type', type)
 
   if (error) {
+    if (isMissingTableError(error)) {
+      return []
+    }
+
     throw error
   }
 
@@ -316,6 +330,10 @@ export async function getTotalEntityCount(): Promise<number> {
     .select('*', { count: 'exact', head: true })
 
   if (error) {
+    if (isMissingTableError(error)) {
+      return 0
+    }
+
     throw error
   }
 
@@ -326,6 +344,10 @@ export async function getEntityTypeDistribution(): Promise<EntityTypeCount[]> {
   const { data, error } = await supabase.from('article_entities').select('entity_type')
 
   if (error) {
+    if (isMissingTableError(error)) {
+      return []
+    }
+
     throw error
   }
 
@@ -446,29 +468,37 @@ export async function countArticlesWithEntities(): Promise<number> {
 }
 
 export async function getEntityDashboardStats(): Promise<EntityDashboardStats> {
-  const [
-    totalEntities,
-    topOrganizations,
-    topCountries,
-    topTechnologies,
-    topCompanies,
-    topKeywords,
-  ] = await Promise.all([
-    getTotalEntityCount(),
-    getTopEntities('Organization', 5),
-    getTopEntities('Country', 5),
-    getTopEntities('Technology', 5),
-    getTopEntities('Company', 5),
-    getTopEntities('Keyword', 5),
-  ])
+  try {
+    const [
+      totalEntities,
+      topOrganizations,
+      topCountries,
+      topTechnologies,
+      topCompanies,
+      topKeywords,
+    ] = await Promise.all([
+      getTotalEntityCount(),
+      getTopEntities('Organization', 5),
+      getTopEntities('Country', 5),
+      getTopEntities('Technology', 5),
+      getTopEntities('Company', 5),
+      getTopEntities('Keyword', 5),
+    ])
 
-  return {
-    totalEntities,
-    topOrganizations,
-    topCountries,
-    topTechnologies,
-    topCompanies,
-    topKeywords,
+    return {
+      totalEntities,
+      topOrganizations,
+      topCountries,
+      topTechnologies,
+      topCompanies,
+      topKeywords,
+    }
+  } catch (error) {
+    if (isMissingTableError(error)) {
+      return EMPTY_ENTITY_DASHBOARD_STATS
+    }
+
+    throw error
   }
 }
 

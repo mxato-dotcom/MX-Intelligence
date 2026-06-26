@@ -1,10 +1,10 @@
 import { FusionClusterCard } from '@/components/fusion/FusionClusterCard'
+import { DailyBriefCard } from '@/components/dashboard/DailyBriefCard'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
 import { articleDetailPath, videoDetailPath, ROUTES } from '@/lib/constants'
 import { safeStringOr } from '@/lib/safeString'
-import { formatDate } from '@/lib/format'
 import styles from './DashboardPage.module.css'
 
 export function DashboardPage() {
@@ -35,8 +35,7 @@ export function DashboardPage() {
     topClusters,
     latestArticles,
     latestVideos,
-    dailyBrief,
-    highlightsText,
+    intelligenceBrief,
   } = data
   const email = user?.email ?? 'there'
 
@@ -203,6 +202,8 @@ export function DashboardPage() {
         </section>
       )}
 
+      <DailyBriefCard brief={intelligenceBrief} />
+
       <div className={styles.contentGrid}>
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
@@ -279,21 +280,6 @@ export function DashboardPage() {
           )}
         </section>
       </div>
-
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Daily Highlights</h3>
-        <div className={styles.highlights}>
-          {dailyBrief?.title && (
-            <p className={styles.highlightsBriefTitle}>{dailyBrief.title}</p>
-          )}
-          <p className={styles.highlightsText}>{highlightsText || 'No highlights available yet.'}</p>
-          {dailyBrief && (
-            <time className={styles.highlightsDate} dateTime={dailyBrief.created_at}>
-              {formatDate(dailyBrief.created_at)}
-            </time>
-          )}
-        </div>
-      </section>
     </div>
   )
 }

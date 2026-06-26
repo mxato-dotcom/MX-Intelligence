@@ -6,6 +6,8 @@ import { ROUTES } from '@/lib/constants'
 import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
 import { CreateArticlePage } from '@/pages/CreateArticlePage'
+import { BriefDetailPage } from '@/pages/BriefDetailPage'
+import { BriefsPage } from '@/pages/BriefsPage'
 import { ConnectorsPage } from '@/pages/ConnectorsPage'
 import { CreateSourcePage } from '@/pages/CreateSourcePage'
 import { CreateVideoPage } from '@/pages/CreateVideoPage'
@@ -40,6 +42,8 @@ export function App() {
             <Route path={ROUTES.VIDEOS_NEW} element={<CreateVideoPage />} />
             <Route path="/videos/:id" element={<VideoDetailPage />} />
             <Route path={ROUTES.SOURCES} element={<SourcesPage />} />
+            <Route path={ROUTES.BRIEFS} element={<BriefsPage />} />
+            <Route path="/briefs/:id" element={<BriefDetailPage />} />
             <Route path={ROUTES.CONNECTORS} element={<ConnectorsPage />} />
             <Route path={ROUTES.SCHEDULER} element={<SchedulerPage />} />
             <Route path={ROUTES.QUEUE} element={<QueuePage />} />

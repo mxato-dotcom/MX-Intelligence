@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { normalizeArticles } from '@/lib/normalizeArticle'
 import { safeStringOr } from '@/lib/safeString'
+import { isMissingTableError } from '@/lib/supabaseErrors'
 import type { Article } from '@/types/article'
 import type { DailyBrief, DailyBriefRow } from '@/types/brief'
 import type { Video } from '@/types/video'
@@ -64,13 +65,15 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 
   if (briefsResult.error) {
-    throw briefsResult.error
+    if (!isMissingTableError(briefsResult.error)) {
+      throw briefsResult.error
+    }
   }
 
   return {
     totalArticles: articlesResult.count ?? 0,
     totalVideos: videosResult.count ?? 0,
-    totalBriefs: briefsResult.count ?? 0,
+    totalBriefs: briefsResult.error ? 0 : (briefsResult.count ?? 0),
   }
 }
 
@@ -83,6 +86,10 @@ export async function getLatestDailyBrief(): Promise<DailyBrief | null> {
     .maybeSingle()
 
   if (error) {
+    if (isMissingTableError(error)) {
+      return null
+    }
+
     throw error
   }
 

@@ -12,6 +12,7 @@ export const ROUTES = {
   SCHEDULER: '/scheduler',
   QUEUE: '/queue',
   ENTITIES: '/entities',
+  BRIEFS: '/briefs',
 } as const
 
 export function articleDetailPath(id: string): string {
@@ -30,8 +31,13 @@ export function sourceEditPath(id: string): string {
   return `/sources/${id}/edit`
 }
 
+export function briefDetailPath(id: string): string {
+  return `/briefs/${id}`
+}
+
 export const NAV_ITEMS = [
   { label: 'Daily Brief', path: ROUTES.DASHBOARD },
+  { label: 'Briefs', path: ROUTES.BRIEFS },
   { label: 'Articles', path: ROUTES.ARTICLES },
   { label: 'Videos', path: ROUTES.VIDEOS },
   { label: 'Sources', path: ROUTES.SOURCES },
