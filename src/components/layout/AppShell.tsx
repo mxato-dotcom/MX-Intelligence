@@ -1,10 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useUnreadAlertCount } from '@/hooks/useUnreadAlertCount'
 import { NAV_ITEMS, ROUTES } from '@/lib/constants'
 import styles from './AppShell.module.css'
 
 export function AppShell() {
   const { user, profile, signOut } = useAuth()
+  const unreadAlertCount = useUnreadAlertCount()
   const displayLabel = profile?.display_name || user?.email || 'Account'
 
   const handleSignOut = async () => {
@@ -32,7 +34,12 @@ export function AppShell() {
                 isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
               }
             >
-              {item.label}
+              <span className={styles.navLinkContent}>
+                {item.label}
+                {item.path === ROUTES.ALERTS && unreadAlertCount > 0 && (
+                  <span className={styles.navBadge}>{unreadAlertCount}</span>
+                )}
+              </span>
             </NavLink>
           ))}
         </nav>
@@ -41,6 +48,12 @@ export function AppShell() {
         <header className={styles.header}>
           <h1 className={styles.headerTitle}>MX Intelligence</h1>
           <div className={styles.headerActions}>
+            {unreadAlertCount > 0 && (
+              <NavLink to={ROUTES.ALERTS} className={styles.alertHeaderLink}>
+                Alerts
+                <span className={styles.headerBadge}>{unreadAlertCount}</span>
+              </NavLink>
+            )}
             <span className={styles.userLabel}>{displayLabel}</span>
             <button className={styles.signOutButton} type="button" onClick={handleSignOut}>
               Sign out

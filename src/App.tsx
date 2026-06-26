@@ -3,6 +3,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard'
 import { GuestGuard } from '@/components/auth/GuestGuard'
 import { AppShell } from '@/components/layout/AppShell'
 import { ROUTES } from '@/lib/constants'
+import { AlertsPage } from '@/pages/AlertsPage'
 import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
 import { CreateArticlePage } from '@/pages/CreateArticlePage'
@@ -44,6 +45,7 @@ export function App() {
             <Route path={ROUTES.SOURCES} element={<SourcesPage />} />
             <Route path={ROUTES.BRIEFS} element={<BriefsPage />} />
             <Route path="/briefs/:id" element={<BriefDetailPage />} />
+            <Route path={ROUTES.ALERTS} element={<AlertsPage />} />
             <Route path={ROUTES.CONNECTORS} element={<ConnectorsPage />} />
             <Route path={ROUTES.SCHEDULER} element={<SchedulerPage />} />
             <Route path={ROUTES.QUEUE} element={<QueuePage />} />

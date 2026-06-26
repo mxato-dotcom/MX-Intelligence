@@ -7,6 +7,7 @@ import type {
 import { isEntityType } from '@/intelligence/entities/EntityType'
 import { briefEngine, BriefEngine } from '@/intelligence/brief/BriefEngine'
 import type { BriefGeneratorProvider } from '@/intelligence/brief/providers/BriefGeneratorProvider'
+import { syncAlertsForBrief } from '@/services/briefAlertSyncService'
 import { supabase } from '@/lib/supabase'
 import { isMissingColumnError, isMissingTableError } from '@/lib/supabaseErrors'
 import { safeString } from '@/lib/safeString'
@@ -240,13 +241,17 @@ export async function generateAndStoreDailyBrief(
         throw retry.error
       }
 
-      return mapBriefRow(retry.data as DailyBriefRow)
+      const mappedRetry = mapBriefRow(retry.data as DailyBriefRow)
+      await syncAlertsForBrief(mappedRetry)
+      return mappedRetry
     }
 
     throw error
   }
 
-  return mapBriefRow(data as DailyBriefRow)
+  const mapped = mapBriefRow(data as DailyBriefRow)
+  await syncAlertsForBrief(mapped)
+  return mapped
 }
 
 export async function getLatestDailyBrief(): Promise<IntelligenceDailyBrief | null> {
@@ -378,7 +383,12 @@ export async function publishBrief(id: string): Promise<IntelligenceDailyBrief |
     patch.reviewed_at = now
   }
 
-  return updateBriefRow(id, patch)
+  const updated = await updateBriefRow(id, patch)
+  if (updated) {
+    await syncAlertsForBrief(updated)
+  }
+
+  return updated
 }
 
 export async function archiveBrief(id: string): Promise<IntelligenceDailyBrief | null> {
