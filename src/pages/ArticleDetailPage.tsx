@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useArticle } from '@/hooks/useArticle'
 import { formatDate } from '@/lib/format'
+import { safeStringOr } from '@/lib/safeString'
 import { ROUTES } from '@/lib/constants'
 import styles from './ArticleDetailPage.module.css'
 
@@ -36,7 +37,7 @@ export function ArticleDetailPage() {
 
   return (
     <PageContainer
-      title={article.title}
+      title={safeStringOr(article.title, 'Untitled')}
       actions={
         <Link to={ROUTES.ARTICLES} className={styles.backLink}>
           Back to articles
@@ -45,8 +46,8 @@ export function ArticleDetailPage() {
     >
       <article className={styles.article}>
         <div className={styles.meta}>
-          <span className={styles.badge}>{article.source}</span>
-          <span className={styles.badge}>{article.category}</span>
+          <span className={styles.badge}>{safeStringOr(article.source, 'Unknown source')}</span>
+          <span className={styles.badge}>{safeStringOr(article.category, 'Uncategorized')}</span>
           <time className={styles.date} dateTime={article.published_at}>
             {formatDate(article.published_at)}
           </time>
@@ -54,7 +55,9 @@ export function ArticleDetailPage() {
 
         {article.summary && <p className={styles.summary}>{article.summary}</p>}
 
-        <div className={styles.content}>{article.content}</div>
+        <div className={styles.content}>
+          {article.content || article.summary || 'No content available.'}
+        </div>
 
         {article.url && (
           <p className={styles.externalLink}>

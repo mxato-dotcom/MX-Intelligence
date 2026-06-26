@@ -1,3 +1,4 @@
+import { safeString, safeStringOr } from '@/lib/safeString'
 import type { Article } from '@/types/article'
 
 export type SourceAgreement = 'Confirmed' | 'Likely' | 'Conflicting' | 'Single Source'
@@ -61,9 +62,9 @@ export function createEmptyFusionStats(): FusionDashboardStats {
 export function articleToClusterRef(article: Article, trustScore: number): ClusterArticleRef {
   return {
     articleId: article.id,
-    title: article.title,
-    sourceName: article.source,
-    publishedAt: article.published_at,
+    title: safeStringOr(article.title, 'Untitled'),
+    sourceName: safeStringOr(article.source, 'Unknown source'),
+    publishedAt: safeString(article.published_at),
     trustScore,
   }
 }

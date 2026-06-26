@@ -4,6 +4,7 @@ import type { DuplicateEngineImportResult } from '@/intelligence/duplicate/Dupli
 import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
 import { rebuildFusionClusters } from '@/services/fusionClusterService'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
+import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import { supabase } from '@/lib/supabase'
 import * as sourceService from '@/services/sourceService'
 import type { Source } from '@/types/source'
@@ -63,9 +64,9 @@ export async function importIntelligenceItems(
   for (const { item, fingerprint } of classifiedItems) {
     const check = duplicateEngine.checkDuplicate(item, fingerprint, index, batchState)
     const now = new Date().toISOString()
-    const summary = item.summary.trim() || item.content.trim().slice(0, 280)
-    const content = item.content.trim() || summary
-    const normalizedUrl = item.url.trim()
+    const summary = safeTrim(item.summary) || safeSlice(item.content, 0, 280)
+    const content = safeTrim(item.content) || summary
+    const normalizedUrl = safeTrim(item.url)
 
     if (check.classification === 'duplicate') {
       skipped += 1
@@ -80,7 +81,7 @@ export async function importIntelligenceItems(
           .update({
             summary,
             content,
-            category: item.category.trim() || 'Uncategorized',
+            category: safeStringOr(item.category, 'Uncategorized'),
             image_url: item.imageUrl ?? null,
             published_at: item.publishedAt || now,
           })
@@ -101,12 +102,12 @@ export async function importIntelligenceItems(
 
     try {
       const { error } = await supabase.from('articles').insert({
-        title: item.title.trim() || 'Untitled',
-        source: item.sourceName.trim(),
+        title: safeStringOr(item.title, 'Untitled'),
+        source: safeStringOr(item.sourceName, 'Unknown source'),
         url: normalizedUrl,
         content,
         summary,
-        category: item.category.trim() || 'Uncategorized',
+        category: safeStringOr(item.category, 'Uncategorized'),
         image_url: item.imageUrl ?? null,
         published_at: item.publishedAt || now,
         created_at: now,

@@ -1,4 +1,5 @@
 import { buildNormalizedTitle, normalizeText } from '@/intelligence/duplicate/Fingerprint'
+import { safeSlice } from '@/lib/safeString'
 import type { Article } from '@/types/article'
 
 const STOP_WORDS = new Set([
@@ -103,13 +104,13 @@ const STOP_WORDS = new Set([
   'according',
 ])
 
-export function tokenize(text: string): string[] {
+export function tokenize(text: string | null | undefined): string[] {
   return normalizeText(text)
     .split(' ')
     .filter((token) => token.length > 2 && !STOP_WORDS.has(token))
 }
 
-export function extractKeywords(text: string, limit = 8): string[] {
+export function extractKeywords(text: string | null | undefined, limit = 8): string[] {
   const counts = new Map<string, number>()
 
   for (const token of tokenize(text)) {
@@ -133,7 +134,7 @@ export function extractArticleKeywords(article: Article): string[] {
 
   addTokens(article.title, 3)
   addTokens(article.summary, 2)
-  addTokens(article.content.slice(0, 500), 1)
+  addTokens(safeSlice(article.content, 0, 500), 1)
 
   return [...weightedTokens.entries()]
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
@@ -156,7 +157,7 @@ export function extractClusterKeywords(articles: Article[]): string[] {
     .map(([word]) => word)
 }
 
-export function buildTitleWordSet(title: string): Set<string> {
+export function buildTitleWordSet(title: string | null | undefined): Set<string> {
   return new Set(tokenize(buildNormalizedTitle(title)))
 }
 

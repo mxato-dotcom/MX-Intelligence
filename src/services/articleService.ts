@@ -1,5 +1,6 @@
 import { importIntelligenceItems } from '@/intelligence/import/ImportEngine'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
+import { normalizeArticle, normalizeArticles } from '@/lib/normalizeArticle'
 import { supabase } from '@/lib/supabase'
 import type { Article, CreateArticleInput } from '@/types/article'
 
@@ -20,7 +21,7 @@ export async function getArticles(): Promise<Article[]> {
     throw error
   }
 
-  return data as Article[]
+  return normalizeArticles((data ?? []) as Record<string, unknown>[])
 }
 
 export async function getArticleById(id: string): Promise<Article | null> {
@@ -30,7 +31,11 @@ export async function getArticleById(id: string): Promise<Article | null> {
     throw error
   }
 
-  return data as Article | null
+  if (!data) {
+    return null
+  }
+
+  return normalizeArticle(data as Record<string, unknown>)
 }
 
 export async function createArticle(input: CreateArticleInput, userId: string): Promise<Article> {
@@ -56,7 +61,7 @@ export async function createArticle(input: CreateArticleInput, userId: string): 
     throw error
   }
 
-  return data as Article
+  return normalizeArticle(data as Record<string, unknown>)
 }
 
 export async function importIntelligenceArticles(

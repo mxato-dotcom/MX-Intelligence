@@ -1,4 +1,5 @@
 import { computeContentHash } from '@/lib/hash'
+import { safeString, safeTrim } from '@/lib/safeString'
 
 export interface FingerprintInput {
   title: string
@@ -28,34 +29,34 @@ const TRACKING_QUERY_PARAMS = [
   'spm',
 ]
 
-export function normalizeText(value: string): string {
-  return value
-    .trim()
+export function normalizeText(value: string | null | undefined): string {
+  return safeTrim(value)
     .toLowerCase()
     .replace(/[^a-z0-9\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
 
-export function buildNormalizedTitle(title: string): string {
+export function buildNormalizedTitle(title: string | null | undefined): string {
   return normalizeText(title)
 }
 
-export function normalizePublishedDate(publishedAt: string): string {
-  if (!publishedAt.trim()) {
+export function normalizePublishedDate(publishedAt: string | null | undefined): string {
+  const value = safeTrim(publishedAt)
+  if (!value) {
     return ''
   }
 
-  const parsed = new Date(publishedAt)
+  const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) {
-    return publishedAt.trim().toLowerCase()
+    return value.toLowerCase()
   }
 
   return parsed.toISOString()
 }
 
-export function normalizeUrl(url: string): string {
-  const trimmed = url.trim()
+export function normalizeUrl(url: string | null | undefined): string {
+  const trimmed = safeTrim(url)
   if (!trimmed) {
     return ''
   }
@@ -99,8 +100,8 @@ export async function buildFingerprintFromItem(item: {
   publishedAt: string
 }): Promise<ArticleFingerprint> {
   return buildFingerprint({
-    title: item.title,
-    url: item.url,
-    publishedAt: item.publishedAt,
+    title: safeString(item.title),
+    url: safeString(item.url),
+    publishedAt: safeString(item.publishedAt),
   })
 }

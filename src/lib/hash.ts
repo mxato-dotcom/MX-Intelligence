@@ -1,3 +1,5 @@
+import { safeTrim } from '@/lib/safeString'
+
 export async function computeContentHash(value: string): Promise<string> {
   const encoded = new TextEncoder().encode(value)
   const buffer = await crypto.subtle.digest('SHA-256', encoded)
@@ -7,5 +9,5 @@ export async function computeContentHash(value: string): Promise<string> {
 }
 
 export async function computeArticleHash(url: string, title: string): Promise<string> {
-  return computeContentHash(`${url.trim().toLowerCase()}::${title.trim().toLowerCase()}`)
+  return computeContentHash(`${safeTrim(url).toLowerCase()}::${safeTrim(title).toLowerCase()}`)
 }

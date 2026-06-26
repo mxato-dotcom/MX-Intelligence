@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { formatDate } from '@/lib/format'
 import { articleDetailPath } from '@/lib/constants'
+import { safeStringOr } from '@/lib/safeString'
 import type { Article } from '@/types/article'
 import styles from './ArticleCard.module.css'
 
@@ -11,10 +12,10 @@ interface ArticleCardProps {
 export function ArticleCard({ article }: ArticleCardProps) {
   return (
     <Link to={articleDetailPath(article.id)} className={styles.card}>
-      <h3 className={styles.title}>{article.title}</h3>
+      <h3 className={styles.title}>{safeStringOr(article.title, 'Untitled')}</h3>
       <div className={styles.meta}>
-        <span className={styles.badge}>{article.source}</span>
-        <span className={styles.badge}>{article.category}</span>
+        <span className={styles.badge}>{safeStringOr(article.source, 'Unknown source')}</span>
+        <span className={styles.badge}>{safeStringOr(article.category, 'Uncategorized')}</span>
         <time className={styles.date} dateTime={article.published_at}>
           {formatDate(article.published_at)}
         </time>

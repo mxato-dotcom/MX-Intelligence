@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatDate } from '@/lib/format'
+import { safeStringOr } from '@/lib/safeString'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import styles from './FeedPreviewModal.module.css'
 
@@ -79,14 +80,14 @@ export function FeedPreviewModal({
                     checked={selectedIds.has(item.id)}
                     onChange={() => toggleItem(item.id)}
                     disabled={isImporting}
-                    aria-label={`Select ${item.title}`}
+                    aria-label={`Select ${safeStringOr(item.title, 'Untitled')}`}
                   />
                   {item.imageUrl && (
                     <img className={styles.thumbnail} src={item.imageUrl} alt="" loading="lazy" />
                   )}
                   <div className={styles.content}>
                     <p className={styles.fieldLabel}>Title</p>
-                    <h4 className={styles.itemTitle}>{item.title}</h4>
+                    <h4 className={styles.itemTitle}>{safeStringOr(item.title, 'Untitled')}</h4>
                     <p className={styles.fieldLabel}>Published</p>
                     <time className={styles.itemDate} dateTime={item.publishedAt}>
                       {formatDate(item.publishedAt)}

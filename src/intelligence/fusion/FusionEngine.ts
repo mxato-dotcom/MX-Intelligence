@@ -18,6 +18,7 @@ import {
   extractClusterKeywords,
 } from '@/intelligence/fusion/TopicExtractor'
 import { buildNormalizedTitle } from '@/intelligence/duplicate/Fingerprint'
+import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import type { Article } from '@/types/article'
 import type { Source } from '@/types/source'
 
@@ -47,8 +48,8 @@ function simpleClusterId(articleIds: string[]): string {
   return `cluster-${Math.abs(hash).toString(36)}`
 }
 
-function parsePublishedMs(publishedAt: string): number {
-  const parsed = new Date(publishedAt)
+function parsePublishedMs(publishedAt: string | null | undefined): number {
+  const parsed = new Date(publishedAt ?? '')
   return Number.isNaN(parsed.getTime()) ? Date.now() : parsed.getTime()
 }
 
@@ -56,14 +57,14 @@ function buildTrustMap(sources: Source[]): Map<string, number> {
   const trustByName = new Map<string, number>()
 
   for (const source of sources) {
-    trustByName.set(source.name.trim().toLowerCase(), source.trust_score)
+    trustByName.set(safeTrim(source.name).toLowerCase(), source.trust_score)
   }
 
   return trustByName
 }
 
 function getArticleTrust(article: Article, trustByName: Map<string, number>): number {
-  return trustByName.get(article.source.trim().toLowerCase()) ?? 50
+  return trustByName.get(safeTrim(article.source).toLowerCase()) ?? 50
 }
 
 function buildProfile(article: Article, trustByName: Map<string, number>): ArticleFusionProfile {
@@ -74,9 +75,9 @@ function buildProfile(article: Article, trustByName: Map<string, number>): Artic
     normalizedTitle: buildNormalizedTitle(article.title),
     titleWords: buildTitleWordSet(article.title),
     keywords: new Set(keywords),
-    category: article.category.trim().toLowerCase(),
+    category: safeTrim(article.category).toLowerCase(),
     publishedAtMs: parsePublishedMs(article.published_at),
-    sourceName: article.source.trim(),
+    sourceName: safeStringOr(article.source, 'Unknown source'),
     trustScore: getArticleTrust(article, trustByName),
   }
 }
@@ -156,13 +157,13 @@ function buildClusterSummary(
   })
 
   const summarySource =
-    mainArticle.summary.trim() ||
-    mainArticle.content.trim().slice(0, 280) ||
+    safeTrim(mainArticle.summary) ||
+    safeSlice(mainArticle.content, 0, 280) ||
     'Multiple intelligence reports cover this topic.'
 
   return {
     id: simpleClusterId(articleIds),
-    mainTitle: mainArticle.title,
+    mainTitle: safeStringOr(mainArticle.title, 'Untitled'),
     summary: summarySource,
     reportCount: sortedArticles.length,
     contributingSources,
@@ -171,7 +172,7 @@ function buildClusterSummary(
     averageTrustScore,
     latestUpdate: mainArticle.published_at,
     keywords: extractClusterKeywords(sortedArticles),
-    category: mainArticle.category,
+    category: safeStringOr(mainArticle.category, 'Uncategorized'),
     confidenceScore,
     agreement,
     articleIds,
@@ -207,10 +208,10 @@ export class FusionEngine {
   }
 
   getClustersForSource(sourceName: string): IntelligenceCluster[] {
-    const normalized = sourceName.trim().toLowerCase()
+    const normalized = safeTrim(sourceName).toLowerCase()
 
     return this.getClusters().filter((cluster) =>
-      cluster.contributingSources.some((name) => name.trim().toLowerCase() === normalized),
+      cluster.contributingSources.some((name) => safeTrim(name).toLowerCase() === normalized),
     )
   }
 

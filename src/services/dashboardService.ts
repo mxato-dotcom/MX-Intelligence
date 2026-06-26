@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabase'
+import { normalizeArticles } from '@/lib/normalizeArticle'
+import { safeStringOr } from '@/lib/safeString'
 import type { Article } from '@/types/article'
 import type { DailyBrief, DailyBriefRow } from '@/types/brief'
 import type { Video } from '@/types/video'
@@ -14,7 +16,7 @@ function mapDailyBrief(row: DailyBriefRow): DailyBrief {
     id: row.id,
     title: row.title ?? null,
     content: row.content ?? row.summary ?? '',
-    created_at: row.created_at,
+    created_at: row.created_at ?? new Date().toISOString(),
   }
 }
 
@@ -29,7 +31,7 @@ export async function getLatestArticles(limit = 5): Promise<Article[]> {
     throw error
   }
 
-  return data as Article[]
+  return normalizeArticles((data ?? []) as Record<string, unknown>[])
 }
 
 export async function getLatestVideos(limit = 5): Promise<Video[]> {
@@ -99,14 +101,20 @@ export function generatePlaceholderBrief(articles: Article[], videos: Video[]): 
   const parts: string[] = []
 
   if (articles.length > 0) {
-    const titles = articles.slice(0, 3).map((article) => article.title).join(', ')
+    const titles = articles
+      .slice(0, 3)
+      .map((article) => safeStringOr(article.title, 'Untitled'))
+      .join(', ')
     parts.push(
       `Latest articles (${articles.length}): ${titles}${articles.length > 3 ? ', and more' : ''}.`,
     )
   }
 
   if (videos.length > 0) {
-    const titles = videos.slice(0, 3).map((video) => video.title).join(', ')
+    const titles = videos
+      .slice(0, 3)
+      .map((video) => safeStringOr(video.title, 'Untitled'))
+      .join(', ')
     parts.push(
       `Latest videos (${videos.length}): ${titles}${videos.length > 3 ? ', and more' : ''}.`,
     )

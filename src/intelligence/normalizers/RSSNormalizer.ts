@@ -1,4 +1,5 @@
 import { computeArticleHash } from '@/lib/hash'
+import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import type { Normalizer, NormalizerContext } from '@/intelligence/normalizers/Normalizer'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import type { ParsedRSSFeed, ParsedRSSItem } from '@/types/rss'
@@ -19,11 +20,11 @@ export class RSSNormalizer implements Normalizer<ParsedRSSItem> {
 
   async normalize(item: ParsedRSSItem, context: NormalizerContext): Promise<IntelligenceItem> {
     const source = context.source
-    const title = item.title.trim() || 'Untitled'
-    const url = item.url.trim()
-    const summary = item.summary.trim() || item.content.trim().slice(0, 280)
-    const content = item.content.trim() || summary
-    const category = source.category.trim() || 'Uncategorized'
+    const title = safeStringOr(item.title, 'Untitled')
+    const url = safeTrim(item.url)
+    const summary = safeTrim(item.summary) || safeSlice(item.content, 0, 280)
+    const content = safeTrim(item.content) || summary
+    const category = safeStringOr(source.category, 'Uncategorized')
     const id = await computeArticleHash(url, title)
 
     return {

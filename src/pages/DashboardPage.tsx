@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
 import { articleDetailPath, videoDetailPath, ROUTES } from '@/lib/constants'
+import { safeStringOr } from '@/lib/safeString'
 import { formatDate } from '@/lib/format'
 import styles from './DashboardPage.module.css'
 
@@ -159,10 +160,10 @@ export function DashboardPage() {
                   to={articleDetailPath(article.id)}
                   className={styles.articleItem}
                 >
-                  <h4 className={styles.itemTitle}>{article.title}</h4>
+                  <h4 className={styles.itemTitle}>{safeStringOr(article.title, 'Untitled')}</h4>
                   <div className={styles.itemMeta}>
-                    <span className={styles.badge}>{article.category}</span>
-                    <span className={styles.badge}>{article.source}</span>
+                    <span className={styles.badge}>{safeStringOr(article.category, 'Uncategorized')}</span>
+                    <span className={styles.badge}>{safeStringOr(article.source, 'Unknown source')}</span>
                   </div>
                   {article.summary && (
                     <p className={styles.itemSummary}>{article.summary}</p>
@@ -204,10 +205,10 @@ export function DashboardPage() {
                     )}
                   </div>
                   <div className={styles.videoBody}>
-                    <h4 className={styles.itemTitle}>{video.title}</h4>
+                    <h4 className={styles.itemTitle}>{safeStringOr(video.title, 'Untitled')}</h4>
                     <div className={styles.itemMeta}>
-                      <span className={styles.badge}>{video.category}</span>
-                      <span className={styles.badge}>{video.source}</span>
+                      <span className={styles.badge}>{safeStringOr(video.category, 'Uncategorized')}</span>
+                      <span className={styles.badge}>{safeStringOr(video.source, 'Unknown source')}</span>
                     </div>
                   </div>
                 </Link>
@@ -223,7 +224,7 @@ export function DashboardPage() {
           {dailyBrief?.title && (
             <p className={styles.highlightsBriefTitle}>{dailyBrief.title}</p>
           )}
-          <p className={styles.highlightsText}>{highlightsText}</p>
+          <p className={styles.highlightsText}>{highlightsText || 'No highlights available yet.'}</p>
           {dailyBrief && (
             <time className={styles.highlightsDate} dateTime={dailyBrief.created_at}>
               {formatDate(dailyBrief.created_at)}

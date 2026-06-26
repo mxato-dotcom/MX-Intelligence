@@ -4,6 +4,7 @@ import { getNormalizer } from '@/intelligence/normalizers/normalizerRegistry'
 import { RSSNormalizer } from '@/intelligence/normalizers/RSSNormalizer'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { mapRssError } from '@/lib/rssErrors'
+import { safeSlice } from '@/lib/safeString'
 import { supabase } from '@/lib/supabase'
 import type {
   FeedImportOptions,
@@ -78,7 +79,7 @@ function mapRssItem(item: Record<string, unknown>, feedLanguage: string | null) 
   const contentEncoded = textValue(item['content:encoded'])
   const description = textValue(item.description)
   const content = contentEncoded || description
-  const summary = description || contentEncoded.slice(0, 280)
+  const summary = description || safeSlice(contentEncoded, 0, 280)
 
   return {
     title: title || 'Untitled',
@@ -113,7 +114,7 @@ function mapAtomEntry(entry: Record<string, unknown>, feedLanguage: string | nul
   if (!url) return null
 
   const content = textValue(entry.content) || textValue(entry.summary)
-  const summary = textValue(entry.summary) || content.slice(0, 280)
+  const summary = textValue(entry.summary) || safeSlice(content, 0, 280)
 
   const authorNode = entry.author as Record<string, unknown> | string | undefined
   const author =

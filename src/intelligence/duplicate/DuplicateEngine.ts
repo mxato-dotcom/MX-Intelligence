@@ -17,6 +17,7 @@ import {
   buildTitleDateKey,
 } from '@/intelligence/duplicate/DuplicateResult'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
+import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import { supabase } from '@/lib/supabase'
 
 interface IntelligenceItemFingerprint {
@@ -28,14 +29,14 @@ function metadataNeedsUpdate(
   existing: ExistingArticleRecord,
   item: IntelligenceItem,
 ): boolean {
-  const summary = item.summary.trim() || item.content.trim().slice(0, 280)
-  const content = item.content.trim() || summary
+  const summary = safeTrim(item.summary) || safeSlice(item.content, 0, 280)
+  const content = safeTrim(item.content) || summary
 
   return (
-    existing.summary.trim() !== summary ||
-    existing.content.trim() !== content ||
+    safeTrim(existing.summary) !== summary ||
+    safeTrim(existing.content) !== content ||
     (existing.image_url ?? null) !== (item.imageUrl ?? null) ||
-    existing.category.trim() !== (item.category.trim() || 'Uncategorized')
+    safeTrim(existing.category) !== safeStringOr(item.category, 'Uncategorized')
   )
 }
 
@@ -127,8 +128,8 @@ async function mapArticleRecord(
 
 export class DuplicateEngine {
   async buildExistingIndex(items: IntelligenceItem[]): Promise<ExistingArticleIndex> {
-    const uniqueUrls = [...new Set(items.map((item) => item.url.trim()).filter(Boolean))]
-    const uniqueTitles = [...new Set(items.map((item) => item.title.trim()).filter(Boolean))]
+    const uniqueUrls = [...new Set(items.map((item) => safeTrim(item.url)).filter(Boolean))]
+    const uniqueTitles = [...new Set(items.map((item) => safeTrim(item.title)).filter(Boolean))]
 
     const records: ExistingArticleRecord[] = []
     const seenIds = new Set<string>()

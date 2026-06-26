@@ -1,4 +1,5 @@
 import { formatDate } from '@/lib/format'
+import { safeStringOr } from '@/lib/safeString'
 import type { IntelligenceCluster, SourceAgreement } from '@/intelligence/fusion/FusionCluster'
 import styles from './FusionClusterCard.module.css'
 
@@ -34,11 +35,13 @@ export function FusionClusterCard({ cluster, compact = false }: FusionClusterCar
   return (
     <article className={styles.card}>
       <div className={styles.header}>
-        <h4 className={styles.title}>{cluster.mainTitle}</h4>
+        <h4 className={styles.title}>{safeStringOr(cluster.mainTitle, 'Untitled cluster')}</h4>
         <span className={styles.confidenceBadge}>{cluster.confidenceScore}%</span>
       </div>
 
-      <p className={styles.summary}>{cluster.summary}</p>
+      <p className={styles.summary}>
+        {cluster.summary || 'No summary available for this cluster.'}
+      </p>
 
       <div className={styles.meta}>
         <span className={agreementClass(cluster.agreement)}>{cluster.agreement}</span>
@@ -59,7 +62,7 @@ export function FusionClusterCard({ cluster, compact = false }: FusionClusterCar
       )}
 
       <p className={styles.sources}>
-        Sources: {cluster.contributingSources.join(', ')}
+        Sources: {cluster.contributingSources.length > 0 ? cluster.contributingSources.join(', ') : 'None'}
       </p>
     </article>
   )
