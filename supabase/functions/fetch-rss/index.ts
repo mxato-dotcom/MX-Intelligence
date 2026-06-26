@@ -1,10 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { handleCorsPreflight, jsonResponse } from '../_shared/cors.ts'
 
 const FETCH_TIMEOUT_MS = 15000
 
@@ -24,16 +19,6 @@ interface FetchRssErrorResponse {
   status?: number
 }
 
-function jsonResponse(body: FetchRssSuccessResponse | FetchRssErrorResponse, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-    },
-  })
-}
-
 function isValidHttpUrl(value: string): boolean {
   try {
     const parsed = new URL(value)
@@ -44,8 +29,9 @@ function isValidHttpUrl(value: string): boolean {
 }
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const corsResponse = handleCorsPreflight(req)
+  if (corsResponse) {
+    return corsResponse
   }
 
   if (req.method !== 'POST') {

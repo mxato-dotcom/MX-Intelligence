@@ -151,7 +151,7 @@ export async function enqueueSourceSync(source: Source, userId: string): Promise
   })
 
   if (result.job) {
-    await queueManager.processNext()
+    await queueManager.processQueue()
   }
 
   return result

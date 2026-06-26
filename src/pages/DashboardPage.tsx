@@ -1,3 +1,5 @@
+import { ConnectorDashboardCards } from '@/components/dashboard/ConnectorDashboardCard'
+import { SyncMetricsCards } from '@/components/dashboard/SyncMetricsCards'
 import { FusionClusterCard } from '@/components/fusion/FusionClusterCard'
 import { DailyBriefCard } from '@/components/dashboard/DailyBriefCard'
 import { GraphRelationshipsCard } from '@/components/dashboard/GraphRelationshipsCard'
@@ -40,6 +42,7 @@ export function DashboardPage() {
     intelligenceBrief,
     recentTimelineEvents,
     topRelationships,
+    connectorStats,
   } = data
   const email = user?.email ?? 'there'
 
@@ -51,6 +54,8 @@ export function DashboardPage() {
           Your intelligence brief for today — signed in as {email}
         </p>
       </header>
+
+      <SyncMetricsCards />
 
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
@@ -236,6 +241,12 @@ export function DashboardPage() {
           )}
         </div>
       </div>
+
+      <ConnectorDashboardCards
+        articlesByConnector={connectorStats.articlesByConnector}
+        sourcesByConnector={connectorStats.sourcesByConnector}
+        latestActivity={connectorStats.latestActivity}
+      />
 
       {topClusters.length > 0 && (
         <section className={styles.section}>

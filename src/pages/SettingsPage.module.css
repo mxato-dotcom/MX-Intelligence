@@ -1,0 +1,68 @@
+.stateBox {
+  padding: var(--space-md);
+  border-radius: 12px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
+}
+
+.stateBoxError {
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #ef4444;
+}
+
+.mainCard {
+  padding: var(--space-xl);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-elevated);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.22);
+}
+
+.configGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.keyColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.credentialBlock {
+  padding: var(--space-lg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+@media (max-width: 900px) {
+  .configGrid {
+    grid-template-columns: 1fr;
+  }
+}

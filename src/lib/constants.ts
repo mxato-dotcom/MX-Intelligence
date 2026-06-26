@@ -20,6 +20,7 @@ export const ROUTES = {
   ALERTS: '/alerts',
   TIMELINE: '/timeline',
   GRAPH: '/graph',
+  SETTINGS: '/settings',
 } as const
 
 export function articleDetailPath(id: string): string {
@@ -76,4 +77,5 @@ export const NAV_ITEMS = [
   { label: 'Scheduler', path: ROUTES.SCHEDULER },
   { label: 'Queue', path: ROUTES.QUEUE },
   { label: 'Entities', path: ROUTES.ENTITIES },
+  { label: 'Settings', path: ROUTES.SETTINGS },
 ] as const

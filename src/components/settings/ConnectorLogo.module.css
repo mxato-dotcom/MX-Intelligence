@@ -1,0 +1,44 @@
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.newsapi {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+.reddit {
+  background: rgba(255, 69, 0, 0.12);
+  color: #ea580c;
+}
+
+.google_news {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.hacker_news {
+  background: rgba(249, 115, 22, 0.12);
+  color: #ea580c;
+}
+
+.rss {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+}
+
+.lg {
+  width: 52px;
+  height: 52px;
+  font-size: 15px;
+  border-radius: 14px;
+}

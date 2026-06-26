@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { QueueJobCard } from '@/components/queue/QueueJobCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useQueue } from '@/contexts/QueueContext'
 import { clearCompleted, formatDurationMs, getQueuePosition } from '@/intelligence/queue/queueService'
 import type { QueueJobStatus } from '@/intelligence/queue/types'
+import { formatRelativeTime } from '@/lib/formatRelativeTime'
+import { getSyncHistory, getSyncLogs } from '@/services/syncHistoryService'
+import type { ConnectorSyncHistoryRecord, ConnectorSyncLogRecord } from '@/types/syncHistory'
 import styles from './QueuePage.module.css'
 
 type QueueFilter = 'all' | QueueJobStatus
@@ -20,13 +23,33 @@ const FILTER_OPTIONS: { id: QueueFilter; label: string }[] = [
 export function QueuePage() {
   const { snapshot, stats, refresh } = useQueue()
   const [filter, setFilter] = useState<QueueFilter>('all')
+  const [syncHistory, setSyncHistory] = useState<ConnectorSyncHistoryRecord[]>([])
+  const [syncLogs, setSyncLogs] = useState<ConnectorSyncLogRecord[]>([])
 
-  const filteredJobs = useMemo(() => {
-    if (filter === 'all') {
-      return snapshot.jobs
+  const filteredJobs = filter === 'all'
+    ? snapshot.jobs
+    : snapshot.jobs.filter((job) => job.status === filter)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadSyncData() {
+      try {
+        const [history, logs] = await Promise.all([getSyncHistory(undefined, 20), getSyncLogs(50)])
+        if (active) {
+          setSyncHistory(history)
+          setSyncLogs(logs)
+        }
+      } catch {
+        // Sync history is optional until migration is applied
+      }
     }
-    return snapshot.jobs.filter((job) => job.status === filter)
-  }, [snapshot.jobs, filter])
+
+    loadSyncData()
+    return () => {
+      active = false
+    }
+  }, [snapshot.jobs.length, stats.completed])
 
   const handleClearCompleted = () => {
     clearCompleted()
@@ -36,7 +59,7 @@ export function QueuePage() {
   return (
     <PageContainer
       title="Job Queue"
-      description="Monitor connector sync jobs, queue positions, and manual retry controls."
+      description="Monitor connector sync jobs, execution history, and structured connector logs."
       actions={
         <button className={styles.clearButton} type="button" onClick={handleClearCompleted}>
           Clear completed
@@ -99,6 +122,41 @@ export function QueuePage() {
             />
           ))}
         </div>
+      )}
+
+      {syncHistory.length > 0 && (
+        <section className={styles.logSection}>
+          <h2 className={styles.logTitle}>Recent sync history</h2>
+          <ul className={styles.logList}>
+            {syncHistory.map((run) => (
+              <li key={run.id} className={styles.logRow}>
+                <span className={styles.logConnector}>{run.connectorId}</span>
+                <span className={styles.logStatus}>{run.status}</span>
+                <span>{run.articlesImported} imported</span>
+                <span>{run.duplicates} duplicates</span>
+                <span>{run.durationMs ? formatDurationMs(run.durationMs) : '—'}</span>
+                <span>{formatRelativeTime(run.startedAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {syncLogs.length > 0 && (
+        <section className={styles.logSection}>
+          <h2 className={styles.logTitle}>Connector logs</h2>
+          <ul className={styles.logList}>
+            {syncLogs.slice(0, 25).map((log) => (
+              <li key={log.id} className={styles.logRow}>
+                <span className={styles.logConnector}>{log.connectorId}</span>
+                <span>{log.message ?? log.errorMessage ?? '—'}</span>
+                <span>{log.httpStatus ?? '—'}</span>
+                <span>{log.durationMs ? `${log.durationMs} ms` : '—'}</span>
+                <span>{formatRelativeTime(log.requestAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </PageContainer>
   )

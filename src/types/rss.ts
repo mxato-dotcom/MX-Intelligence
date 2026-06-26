@@ -34,6 +34,14 @@ export interface FeedImportResult {
   updated: number
   failed: number
   durationMs: number
+  syncHistoryId?: string | null
+  entitiesExtracted?: number
+  briefGenerated?: boolean
+  timelineUpdated?: boolean
+  graphUpdated?: boolean
+  alertsEvaluated?: number
+  httpStatus?: number | null
+  providerResponse?: string | null
 }
 
 export interface FeedImportOptions {

@@ -24,6 +24,7 @@ import { EntityProfilePage } from '@/pages/EntityProfilePage'
 import { EntityComparePage } from '@/pages/EntityComparePage'
 import { GraphPage } from '@/pages/GraphPage'
 import { SchedulerPage } from '@/pages/SchedulerPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { TimelinePage } from '@/pages/TimelinePage'
 import { VideoDetailPage } from '@/pages/VideoDetailPage'
 import { VideosPage } from '@/pages/VideosPage'
@@ -53,6 +54,7 @@ export function App() {
             <Route path={ROUTES.CONNECTORS} element={<ConnectorsPage />} />
             <Route path={ROUTES.SCHEDULER} element={<SchedulerPage />} />
             <Route path={ROUTES.QUEUE} element={<QueuePage />} />
+            <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
             <Route path={ROUTES.TIMELINE} element={<TimelinePage />} />
             <Route path={ROUTES.GRAPH} element={<GraphPage />} />
             <Route path={ROUTES.ENTITIES_COMPARE} element={<EntityComparePage />} />

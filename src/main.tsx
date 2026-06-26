@@ -4,6 +4,7 @@ import { App } from './App'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { DataRefreshProvider } from '@/contexts/DataRefreshContext'
 import { QueueProvider } from '@/contexts/QueueContext'
+import { ToastProvider } from '@/contexts/ToastContext'
 import './styles/globals.css'
 
 const rootElement = document.getElementById('root')
@@ -16,9 +17,11 @@ createRoot(rootElement).render(
   <StrictMode>
     <AuthProvider>
       <DataRefreshProvider>
-        <QueueProvider>
-          <App />
-        </QueueProvider>
+        <ToastProvider>
+          <QueueProvider>
+            <App />
+          </QueueProvider>
+        </ToastProvider>
       </DataRefreshProvider>
     </AuthProvider>
   </StrictMode>,

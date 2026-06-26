@@ -2,6 +2,7 @@ import type {
   EnqueueJobInput,
   EnqueueResult,
   QueueJob,
+  QueueJobExecutionMetrics,
   QueueJobPriority,
   QueueSnapshot,
   QueueStats,
@@ -125,12 +126,19 @@ export function startJob(id: string): QueueJob {
   return job
 }
 
-export function completeJob(id: string, itemsCollected: number): QueueJob {
+export function completeJob(
+  id: string,
+  itemsCollected: number,
+  metrics?: QueueJobExecutionMetrics,
+): QueueJob {
   const job = getJobOrThrow(id)
   job.status = 'completed'
   job.completedAt = new Date().toISOString()
   job.itemsCollected = itemsCollected
   job.error = undefined
+  if (metrics) {
+    job.metrics = { ...job.metrics, ...metrics }
+  }
   notify()
   return job
 }
@@ -154,6 +162,23 @@ export function cancelJob(id: string): QueueJob {
 
   job.status = 'cancelled'
   job.completedAt = new Date().toISOString()
+  notify()
+  return job
+}
+
+export function requeueJobForRetry(id: string): QueueJob {
+  const job = getJobOrThrow(id)
+
+  const active = getActiveJobForSource(job.sourceId)
+  if (active) {
+    throw new Error('Source already has an active queue job')
+  }
+
+  job.status = 'waiting'
+  job.startedAt = undefined
+  job.completedAt = undefined
+  job.error = undefined
+  job.itemsCollected = 0
   notify()
   return job
 }

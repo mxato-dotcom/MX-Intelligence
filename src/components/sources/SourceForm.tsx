@@ -1,8 +1,20 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  ConnectorSourceFields,
+  requiresConnectorConfig,
+  urlRequiredForSourceType,
+} from '@/components/sources/ConnectorSourceFields'
 import { useAuth } from '@/hooks/useAuth'
-import { sourceDetailPath } from '@/lib/constants'
+import { ConnectorReadinessBanner } from '@/components/sources/ConnectorReadinessBanner'
+import { catalogTypeToConnectorId } from '@/types/connectorSettings'
+import { getConnectorReadiness } from '@/services/connectorCredentialService'
+import { getDefaultSourceValuesFromSettings } from '@/services/connectorSettingsService'
+import type { ConnectorReadiness } from '@/types/connectorSettings'
 import * as sourceService from '@/services/sourceService'
+import { getConnectorCatalogEntry } from '@/intelligence/connectors/connectorCatalog'
+import { sourceDetailPath } from '@/lib/constants'
+import type { ConnectorConfig } from '@/types/connectorConfig'
 import {
   DEFAULT_SOURCE_VALUES,
   SOURCE_CATEGORIES,
@@ -13,6 +25,14 @@ import {
   type Source,
 } from '@/types/source'
 import styles from './SourceForm.module.css'
+
+function parseSourceConnectorConfig(source: Source): ConnectorConfig {
+  const raw = source.connector_config
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw as ConnectorConfig
+  }
+  return {}
+}
 
 function sourceToForm(source: Source): CreateSourceInput {
   return {
@@ -26,6 +46,25 @@ function sourceToForm(source: Source): CreateSourceInput {
     update_interval: source.update_interval,
     trust_score: source.trust_score,
     active: source.active,
+    connector_config: parseSourceConnectorConfig(source),
+  }
+}
+
+function defaultUrlForType(sourceType: string): string {
+  const entry = getConnectorCatalogEntry(sourceType)
+  const type = entry?.type ?? sourceType
+
+  switch (type) {
+    case 'NewsAPI':
+      return 'https://newsapi.org'
+    case 'Google News':
+      return 'https://news.google.com'
+    case 'Reddit':
+      return 'https://www.reddit.com'
+    case 'Hacker News':
+      return 'https://news.ycombinator.com'
+    default:
+      return ''
   }
 }
 
@@ -35,15 +74,33 @@ interface SourceFormProps {
   defaultSourceType?: string
 }
 
+function resolveDefaultSourceType(defaultSourceType?: string): string {
+  if (!defaultSourceType) {
+    return DEFAULT_SOURCE_VALUES.source_type
+  }
+
+  const catalogEntry = getConnectorCatalogEntry(defaultSourceType)
+  if (catalogEntry) {
+    return catalogEntry.type
+  }
+
+  const matchedType = SOURCE_TYPES.find(
+    (type) => type.toLowerCase() === defaultSourceType.trim().toLowerCase(),
+  )
+  return matchedType ?? DEFAULT_SOURCE_VALUES.source_type
+}
+
 function createInitialForm(source?: Source, defaultSourceType?: string): CreateSourceInput {
   if (source) {
     return sourceToForm(source)
   }
 
-  const base = { ...DEFAULT_SOURCE_VALUES }
-
-  if (defaultSourceType && SOURCE_TYPES.includes(defaultSourceType as typeof SOURCE_TYPES[number])) {
-    base.source_type = defaultSourceType
+  const sourceType = resolveDefaultSourceType(defaultSourceType)
+  const base: CreateSourceInput = {
+    ...DEFAULT_SOURCE_VALUES,
+    source_type: sourceType,
+    url: defaultUrlForType(sourceType),
+    connector_config: {},
   }
 
   return base
@@ -52,12 +109,88 @@ function createInitialForm(source?: Source, defaultSourceType?: string): CreateS
 export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState<CreateSourceInput>(() => createInitialForm(source, defaultSourceType))
+  const [form, setForm] = useState<CreateSourceInput>(() =>
+    createInitialForm(source, defaultSourceType),
+  )
+  const [connectorConfig, setConnectorConfig] = useState<ConnectorConfig>(
+    () => form.connector_config ?? {},
+  )
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [readiness, setReadiness] = useState<ConnectorReadiness | null>(null)
+  const [readinessLoading, setReadinessLoading] = useState(false)
+
+  const connectorId = catalogTypeToConnectorId(form.source_type)
+
+  useEffect(() => {
+    if (mode !== 'create') {
+      return
+    }
+
+    let cancelled = false
+
+    getDefaultSourceValuesFromSettings()
+      .then((defaults) => {
+        if (!cancelled) {
+          setForm((prev) => ({
+            ...prev,
+            update_interval: defaults.updateInterval,
+            trust_score: defaults.trustScore,
+          }))
+        }
+      })
+      .catch(() => {
+        // Defaults are optional; ignore errors
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [mode])
+
+  useEffect(() => {
+    if (!connectorId) {
+      setReadiness(null)
+      return
+    }
+
+    let cancelled = false
+    setReadinessLoading(true)
+
+    getConnectorReadiness(connectorId)
+      .then((result) => {
+        if (!cancelled) {
+          setReadiness(result)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setReadiness(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReadinessLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [connectorId, form.source_type])
 
   const updateField = <K extends keyof CreateSourceInput>(field: K, value: CreateSourceInput[K]) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [field]: value }
+
+      if (field === 'source_type' && typeof value === 'string') {
+        if (!urlRequiredForSourceType(value)) {
+          next.url = defaultUrlForType(value)
+        }
+      }
+
+      return next
+    })
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -71,12 +204,17 @@ export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps)
     setError(null)
     setIsSubmitting(true)
 
+    const payload: CreateSourceInput = {
+      ...form,
+      connector_config: requiresConnectorConfig(form.source_type) ? connectorConfig : {},
+    }
+
     try {
       if (mode === 'create') {
-        const created = await sourceService.createSource(form, user.id)
+        const created = await sourceService.createSource(payload, user.id)
         navigate(sourceDetailPath(created.id))
       } else if (source) {
-        const updated = await sourceService.updateSource(source.id, form)
+        const updated = await sourceService.updateSource(source.id, payload)
         navigate(sourceDetailPath(updated.id))
       }
     } catch (err) {
@@ -85,6 +223,8 @@ export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps)
       setIsSubmitting(false)
     }
   }
+
+  const showUrlField = urlRequiredForSourceType(form.source_type)
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
@@ -112,7 +252,7 @@ export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps)
             value={form.source_type}
             onChange={(e) => updateField('source_type', e.target.value)}
             required
-            disabled={isSubmitting}
+            disabled={isSubmitting || mode === 'edit'}
           >
             {SOURCE_TYPES.map((type) => (
               <option key={type} value={type}>{type}</option>
@@ -137,19 +277,34 @@ export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps)
         </label>
       </div>
 
-      <label className={styles.field}>
-        <span className={styles.label}>URL</span>
-        <input
-          className={styles.input}
-          type="url"
-          name="url"
-          value={form.url}
-          onChange={(e) => updateField('url', e.target.value)}
-          placeholder="https://"
-          required
+      {connectorId && (
+        <ConnectorReadinessBanner readiness={readiness} isLoading={readinessLoading} />
+      )}
+
+      {requiresConnectorConfig(form.source_type) && (
+        <ConnectorSourceFields
+          sourceType={form.source_type}
+          config={connectorConfig}
+          onChange={setConnectorConfig}
           disabled={isSubmitting}
         />
-      </label>
+      )}
+
+      {showUrlField && (
+        <label className={styles.field}>
+          <span className={styles.label}>URL</span>
+          <input
+            className={styles.input}
+            type="url"
+            name="url"
+            value={form.url}
+            onChange={(e) => updateField('url', e.target.value)}
+            placeholder="https://"
+            required
+            disabled={isSubmitting}
+          />
+        </label>
+      )}
 
       <label className={styles.field}>
         <span className={styles.label}>Description</span>
@@ -237,7 +392,7 @@ export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps)
           onChange={(e) => updateField('active', e.target.checked)}
           disabled={isSubmitting}
         />
-        Active source
+        Active source (auto sync when scheduler runs)
       </label>
 
       <button className={styles.button} type="submit" disabled={isSubmitting}>

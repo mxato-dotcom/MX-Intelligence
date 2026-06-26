@@ -1,0 +1,38 @@
+.section {
+  padding: var(--space-xl);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: var(--color-bg-elevated);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.22);
+  margin-bottom: 0;
+}
+
+.header {
+  margin-bottom: var(--space-lg);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 var(--space-xs);
+  letter-spacing: -0.02em;
+}
+
+.description {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.skeletonBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

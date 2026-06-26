@@ -10,6 +10,12 @@ import { formatIntervalLabel, formatNextSyncLabel } from '@/intelligence/schedul
 import { formatDate } from '@/lib/format'
 import { sourceDetailPath } from '@/lib/constants'
 import {
+  getSchedulerRuntimeState,
+  runAllDueSourcesNow,
+  setMaxConcurrentJobs,
+  setSchedulerPaused,
+} from '@/services/backgroundSyncService'
+import {
   computeSchedulerStats,
   enqueueSourceSync,
   formatSyncStatusLabel,
@@ -82,13 +88,51 @@ function SchedulerJobRow({ job, source, isQueued, onRunSync }: SchedulerJobRowPr
 
 export function SchedulerPage() {
   const { user } = useAuth()
-  const { snapshot, processQueue } = useQueue()
+  const { snapshot, stats: queueStats, processQueue } = useQueue()
   const { sources, isLoading, error, refetch } = useSources()
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
   const [enqueueingIds, setEnqueueingIds] = useState<Set<string>>(new Set())
+  const [runtime, setRuntime] = useState(() => getSchedulerRuntimeState())
+  const [isRunningAll, setIsRunningAll] = useState(false)
 
   const jobs = useMemo(() => getAllSourceSyncJobs(sources), [sources, snapshot.jobs])
-  const stats = computeSchedulerStats(jobs)
+  const stats = useMemo(
+    () => ({
+      ...computeSchedulerStats(jobs, queueStats.running),
+      jobsToday: runtime.jobsToday,
+      averageRuntimeMs: queueStats.averageDurationMs,
+      paused: runtime.paused,
+      lastRunAt: runtime.lastRunAt,
+    }),
+    [jobs, queueStats, runtime],
+  )
+
+  const refreshRuntime = () => setRuntime(getSchedulerRuntimeState())
+
+  const handlePauseResume = () => {
+    setSchedulerPaused(!runtime.paused)
+    refreshRuntime()
+  }
+
+  const handleMaxConcurrentChange = (value: number) => {
+    setMaxConcurrentJobs(value)
+    refreshRuntime()
+  }
+
+  const handleRunAllDue = async () => {
+    if (!user) {
+      return
+    }
+
+    setIsRunningAll(true)
+    try {
+      await runAllDueSourcesNow(user.id)
+      refreshRuntime()
+      await refetch()
+    } finally {
+      setIsRunningAll(false)
+    }
+  }
 
   const handleRunSync = async (sourceId: string) => {
     const source = sources.find((item) => item.id === sourceId)
@@ -145,6 +189,38 @@ export function SchedulerPage() {
 
       {!isLoading && !error && (
         <>
+          <div className={styles.controls}>
+            <button
+              className={styles.controlButton}
+              type="button"
+              onClick={handlePauseResume}
+            >
+              {runtime.paused ? 'Resume scheduler' : 'Pause scheduler'}
+            </button>
+            <button
+              className={styles.controlButton}
+              type="button"
+              onClick={handleRunAllDue}
+              disabled={isRunningAll || runtime.paused}
+            >
+              {isRunningAll ? 'Running…' : 'Run all due now'}
+            </button>
+            <label className={styles.concurrentControl}>
+              <span>Max concurrent jobs</span>
+              <select
+                value={runtime.maxConcurrentJobs}
+                onChange={(event) => handleMaxConcurrentChange(Number(event.target.value))}
+              >
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </label>
+            <span className={styles.schedulerState}>
+              Scheduler: {runtime.paused ? 'Paused' : 'Active'}
+            </span>
+          </div>
+
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
               <p className={styles.statLabel}>Total Sources</p>
@@ -165,6 +241,24 @@ export function SchedulerPage() {
             <div className={styles.statCard}>
               <p className={styles.statLabel}>Manual Only</p>
               <p className={styles.statValue}>{stats.manualOnly}</p>
+            </div>
+            <div className={styles.statCard}>
+              <p className={styles.statLabel}>Jobs today</p>
+              <p className={styles.statValue}>{stats.jobsToday ?? 0}</p>
+            </div>
+            <div className={styles.statCard}>
+              <p className={styles.statLabel}>Avg runtime</p>
+              <p className={styles.statValue}>
+                {stats.averageRuntimeMs
+                  ? `${Math.round(stats.averageRuntimeMs / 1000)}s`
+                  : '—'}
+              </p>
+            </div>
+            <div className={styles.statCard}>
+              <p className={styles.statLabel}>Last run</p>
+              <p className={styles.statValueSmall}>
+                {stats.lastRunAt ? formatDate(stats.lastRunAt) : '—'}
+              </p>
             </div>
           </div>
 

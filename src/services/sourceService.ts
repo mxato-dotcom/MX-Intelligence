@@ -40,6 +40,7 @@ export async function createSource(data: CreateSourceInput, userId: string): Pro
       update_interval: data.update_interval.trim(),
       trust_score: data.trust_score,
       active: data.active,
+      connector_config: data.connector_config ?? {},
     })
     .select()
     .single()
@@ -68,6 +69,7 @@ export async function updateSource(id: string, data: UpdateSourceInput): Promise
   if (data.update_interval !== undefined) updates.update_interval = data.update_interval.trim()
   if (data.trust_score !== undefined) updates.trust_score = data.trust_score
   if (data.active !== undefined) updates.active = data.active
+  if (data.connector_config !== undefined) updates.connector_config = data.connector_config
 
   const { data: row, error } = await supabase
     .from('sources')

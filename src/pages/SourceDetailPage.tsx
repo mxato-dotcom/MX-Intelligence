@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { SourceConnectorPanel } from '@/components/sources/SourceConnectorPanel'
+import { SourceSyncHistoryPanel } from '@/components/sources/SourceSyncHistoryPanel'
 import { SourceTrustDisplay } from '@/components/sources/SourceTrustDisplay'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useSource } from '@/hooks/useSource'
@@ -140,6 +141,8 @@ export function SourceDetailPage() {
         )}
 
         <SourceConnectorPanel source={source} onSyncComplete={refetch} />
+
+        <SourceSyncHistoryPanel sourceId={source.id} />
 
         {actionError && (
           <div className={`${styles.stateBox} ${styles.stateBoxError}`} role="alert">

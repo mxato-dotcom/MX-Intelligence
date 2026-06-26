@@ -14,6 +14,8 @@ import { rebuildFusionClusters, getFusionDashboardStats, getFusionClusters } fro
 import { getEntityDashboardStats } from '@/services/entityExtractionService'
 import type { EntityDashboardStats } from '@/services/entityService'
 import type { DashboardStats } from '@/services/dashboardService'
+import { getConnectorDashboardStats } from '@/services/connectorStatsService'
+import type { ConnectorDashboardStats } from '@/services/connectorStatsService'
 import type { TimelineEvent } from '@/types/timeline'
 import type { TopRelationship } from '@/types/graph'
 import { getRecentTimelineEvents, getTimeline } from '@/services/timelineService'
@@ -31,6 +33,7 @@ export interface DashboardData {
   intelligenceBrief: IntelligenceDailyBrief | null
   recentTimelineEvents: TimelineEvent[]
   topRelationships: TopRelationship[]
+  connectorStats: ConnectorDashboardStats
 }
 
 export function useDashboard() {
@@ -58,6 +61,7 @@ export function useDashboard() {
         ])
 
         const trustStats = trustScoreEngine.computeDashboardStats(sources)
+        const connectorStats = await getConnectorDashboardStats(sources)
         await rebuildFusionClusters()
         const fusionStats = getFusionDashboardStats()
         const topClusters = getFusionClusters().slice(0, 5)
@@ -84,6 +88,7 @@ export function useDashboard() {
             intelligenceBrief,
             recentTimelineEvents,
             topRelationships,
+            connectorStats,
           })
         }
       } catch (err) {

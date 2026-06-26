@@ -107,3 +107,43 @@
     font-size: 22px;
   }
 }
+
+.logSection {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.logTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+
+.logList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.logRow {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr 0.8fr 1fr;
+  gap: var(--space-sm);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.logConnector {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.logStatus {
+  text-transform: capitalize;
+}

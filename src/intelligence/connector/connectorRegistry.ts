@@ -1,17 +1,22 @@
 import type { IntelligenceConnector } from '@/intelligence/connector/IntelligenceConnector'
 import { PlaceholderConnector } from '@/intelligence/connector/BasePlaceholderConnector'
 import {
+  cisaConnector,
+  coinGeckoConnector,
   customApiConnector,
   devToConnector,
+  gdeltConnector,
   githubConnector,
-  googleNewsConnector,
-  hackerNewsConnector,
   mediumConnector,
-  newsApiConnector,
-  redditConnector,
+  mitreConnector,
+  nistConnector,
   xConnector,
   youtubeConnector,
 } from '@/intelligence/connector/connectors/placeholders'
+import { googleNewsConnector } from '@/intelligence/connector/connectors/GoogleNewsConnector'
+import { hackerNewsConnector } from '@/intelligence/connector/connectors/HackerNewsConnector'
+import { newsApiConnector } from '@/intelligence/connector/connectors/NewsAPIConnector'
+import { redditConnector } from '@/intelligence/connector/connectors/RedditConnector'
 import { rssConnector } from '@/intelligence/connector/connectors/RSSConnector'
 
 const connectorRegistry = new Map<string, IntelligenceConnector>()
@@ -31,6 +36,11 @@ const TYPE_ALIASES: Record<string, string> = {
   newsapi: 'NewsAPI',
   'news api': 'NewsAPI',
   'custom api': 'Custom API',
+  gdelt: 'GDELT',
+  cisa: 'CISA',
+  nist: 'NIST',
+  mitre: 'MITRE',
+  coingecko: 'CoinGecko',
 }
 
 function resolveConnectorKey(sourceType: string): string {
@@ -98,16 +108,21 @@ export function getConnectorCapabilities(_sourceType: string): ConnectorCapabili
 
 function bootstrapConnectors(): void {
   registerConnector(rssConnector, ['rss'])
-  registerConnector(youtubeConnector, ['youtube'])
+  registerConnector(newsApiConnector, ['newsapi', 'news api'])
+  registerConnector(googleNewsConnector, ['google news'])
   registerConnector(redditConnector, ['reddit'])
+  registerConnector(hackerNewsConnector, ['hacker news'])
+  registerConnector(youtubeConnector, ['youtube'])
   registerConnector(xConnector, ['x', 'twitter'])
   registerConnector(githubConnector, ['github'])
-  registerConnector(googleNewsConnector, ['google news'])
   registerConnector(mediumConnector, ['medium'])
-  registerConnector(hackerNewsConnector, ['hacker news'])
   registerConnector(devToConnector, ['dev.to', 'devto'])
-  registerConnector(newsApiConnector, ['newsapi', 'news api'])
   registerConnector(customApiConnector, ['custom api'])
+  registerConnector(gdeltConnector, ['gdelt'])
+  registerConnector(cisaConnector, ['cisa'])
+  registerConnector(nistConnector, ['nist'])
+  registerConnector(mitreConnector, ['mitre'])
+  registerConnector(coinGeckoConnector, ['coingecko'])
 }
 
 bootstrapConnectors()

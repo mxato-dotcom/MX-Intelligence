@@ -34,4 +34,8 @@ export interface SchedulerStats {
   running: number
   failed: number
   manualOnly: number
+  jobsToday?: number
+  averageRuntimeMs?: number
+  paused?: boolean
+  lastRunAt?: string | null
 }

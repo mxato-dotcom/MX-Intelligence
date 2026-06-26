@@ -28,14 +28,24 @@ export const CONNECTOR_CATALOG: ConnectorCatalogEntry[] = [
     implemented: true,
   },
   {
-    type: 'YouTube',
-    name: 'YouTube',
+    type: 'NewsAPI',
+    name: 'NewsAPI',
     description:
-      'Monitor channels and playlists for new videos, summaries, and metadata from YouTube sources.',
-    category: 'Video',
-    status: 'coming_soon',
+      'Pull structured news articles from NewsAPI endpoints with keyword and outlet filters.',
+    category: 'News',
+    status: 'available',
     capabilities: { trust: true, import: true, preview: true },
-    implemented: false,
+    implemented: true,
+  },
+  {
+    type: 'Google News',
+    name: 'Google News',
+    description:
+      'Aggregate headlines and stories from Google News topics and search queries.',
+    category: 'News',
+    status: 'available',
+    capabilities: { trust: true, import: true, preview: true },
+    implemented: true,
   },
   {
     type: 'Reddit',
@@ -43,6 +53,26 @@ export const CONNECTOR_CATALOG: ConnectorCatalogEntry[] = [
     description:
       'Track subreddits and threads for trending discussions, links, and community intelligence.',
     category: 'Social',
+    status: 'available',
+    capabilities: { trust: true, import: true, preview: true },
+    implemented: true,
+  },
+  {
+    type: 'Hacker News',
+    name: 'Hacker News',
+    description:
+      'Surface top stories and discussions from Hacker News for tech and startup intelligence.',
+    category: 'Developer',
+    status: 'available',
+    capabilities: { trust: true, import: true, preview: true },
+    implemented: true,
+  },
+  {
+    type: 'YouTube',
+    name: 'YouTube',
+    description:
+      'Monitor channels and playlists for new videos, summaries, and metadata from YouTube sources.',
+    category: 'Video',
     status: 'coming_soon',
     capabilities: { trust: true, import: true, preview: true },
     implemented: false,
@@ -68,26 +98,6 @@ export const CONNECTOR_CATALOG: ConnectorCatalogEntry[] = [
     implemented: false,
   },
   {
-    type: 'Google News',
-    name: 'Google News',
-    description:
-      'Aggregate headlines and stories from Google News topics and search queries.',
-    category: 'News',
-    status: 'coming_soon',
-    capabilities: { trust: true, import: true, preview: true },
-    implemented: false,
-  },
-  {
-    type: 'NewsAPI',
-    name: 'NewsAPI',
-    description:
-      'Pull structured news articles from NewsAPI endpoints with keyword and outlet filters.',
-    category: 'News',
-    status: 'coming_soon',
-    capabilities: { trust: true, import: true, preview: true },
-    implemented: false,
-  },
-  {
     type: 'Medium',
     name: 'Medium',
     description:
@@ -98,21 +108,61 @@ export const CONNECTOR_CATALOG: ConnectorCatalogEntry[] = [
     implemented: false,
   },
   {
-    type: 'Hacker News',
-    name: 'Hacker News',
+    type: 'Dev.to',
+    name: 'Dev.to',
     description:
-      'Surface top stories and discussions from Hacker News for tech and startup intelligence.',
+      'Collect developer articles and community posts from Dev.to tags and authors.',
     category: 'Developer',
     status: 'coming_soon',
     capabilities: { trust: true, import: true, preview: true },
     implemented: false,
   },
   {
-    type: 'Dev.to',
-    name: 'Dev.to',
+    type: 'GDELT',
+    name: 'GDELT',
     description:
-      'Collect developer articles and community posts from Dev.to tags and authors.',
-    category: 'Developer',
+      'Monitor global news events and geopolitical signals from the GDELT knowledge graph.',
+    category: 'News',
+    status: 'coming_soon',
+    capabilities: { trust: true, import: true, preview: true },
+    implemented: false,
+  },
+  {
+    type: 'CISA',
+    name: 'CISA',
+    description:
+      'Track cybersecurity advisories and alerts from the Cybersecurity and Infrastructure Security Agency.',
+    category: 'Government',
+    status: 'coming_soon',
+    capabilities: { trust: true, import: true, preview: true },
+    implemented: false,
+  },
+  {
+    type: 'NIST',
+    name: 'NIST',
+    description:
+      'Import standards, publications, and cybersecurity guidance from NIST.',
+    category: 'Government',
+    status: 'coming_soon',
+    capabilities: { trust: true, import: true, preview: true },
+    implemented: false,
+  },
+  {
+    type: 'MITRE',
+    name: 'MITRE',
+    description:
+      'Collect threat intelligence frameworks and CVE data from MITRE sources.',
+    category: 'Government',
+    status: 'coming_soon',
+    capabilities: { trust: true, import: true, preview: true },
+    implemented: false,
+  },
+  {
+    type: 'CoinGecko',
+    name: 'CoinGecko',
+    description:
+      'Track cryptocurrency market data, trends, and token intelligence from CoinGecko.',
+    category: 'Finance',
     status: 'coming_soon',
     capabilities: { trust: true, import: true, preview: true },
     implemented: false,

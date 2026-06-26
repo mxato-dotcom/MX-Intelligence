@@ -5,6 +5,8 @@ export type DuplicateMatchReason =
   | 'title'
   | 'title_and_date'
   | 'fingerprint'
+  | 'provider_id'
+  | 'content_hash'
   | 'batch_duplicate'
 
 export interface DuplicateCheckResult {
@@ -18,6 +20,8 @@ export interface DuplicateBatchState {
   normalizedTitles: Set<string>
   titleDateKeys: Set<string>
   fingerprints: Set<string>
+  providerIds: Set<string>
+  contentHashes: Set<string>
 }
 
 export interface ExistingArticleRecord {
@@ -33,6 +37,8 @@ export interface ExistingArticleRecord {
   normalizedTitle: string
   publishedDateKey: string
   fingerprint: string
+  contentHash: string
+  providerIdKey: string | null
 }
 
 export interface ExistingArticleIndex {
@@ -40,6 +46,8 @@ export interface ExistingArticleIndex {
   byNormalizedTitle: Map<string, ExistingArticleRecord[]>
   byTitleDate: Map<string, ExistingArticleRecord>
   byFingerprint: Map<string, ExistingArticleRecord>
+  byContentHash: Map<string, ExistingArticleRecord>
+  byProviderId: Map<string, ExistingArticleRecord>
   records: ExistingArticleRecord[]
 }
 
@@ -56,6 +64,8 @@ export function createDuplicateBatchState(): DuplicateBatchState {
     normalizedTitles: new Set<string>(),
     titleDateKeys: new Set<string>(),
     fingerprints: new Set<string>(),
+    providerIds: new Set<string>(),
+    contentHashes: new Set<string>(),
   }
 }
 

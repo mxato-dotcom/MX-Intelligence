@@ -1,0 +1,56 @@
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.barTrack {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.high {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.medium {
+  background: linear-gradient(90deg, #eab308, #ca8a04);
+}
+
+.low {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 36px;
+}
+
+.sublabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}

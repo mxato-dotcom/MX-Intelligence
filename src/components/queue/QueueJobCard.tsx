@@ -9,7 +9,6 @@ import {
   getJobDurationMs,
   retryJob,
 } from '@/intelligence/queue/queueService'
-import { queueManager } from '@/intelligence/queue/QueueManager'
 import type { QueueJob } from '@/intelligence/queue/types'
 import { formatDate } from '@/lib/format'
 import { sourceDetailPath } from '@/lib/constants'
@@ -47,6 +46,7 @@ export function QueueJobCard({ job, queuePosition = 0 }: QueueJobCardProps) {
   const [isActing, setIsActing] = useState(false)
 
   const duration = formatDurationMs(getJobDurationMs(job))
+  const metrics = job.metrics
 
   const handleRetry = async () => {
     if (!user) {
@@ -89,7 +89,7 @@ export function QueueJobCard({ job, queuePosition = 0 }: QueueJobCardProps) {
   const handleProcessQueue = async () => {
     setIsActing(true)
     try {
-      await queueManager.processNext()
+      await processQueue()
       notifyDataRefresh()
       refresh()
     } finally {
@@ -124,24 +124,68 @@ export function QueueJobCard({ job, queuePosition = 0 }: QueueJobCardProps) {
 
       <div className={styles.metaGrid}>
         <div>
+          <span className={styles.metaLabel}>Job ID</span>
+          <span className={styles.metaValue}>{job.id}</span>
+        </div>
+        <div>
           <span className={styles.metaLabel}>Priority</span>
           <span className={styles.metaValue}>{job.priority}</span>
         </div>
         <div>
-          <span className={styles.metaLabel}>Attempts</span>
+          <span className={styles.metaLabel}>Retry count</span>
           <span className={styles.metaValue}>
             {job.attempts}/{job.maxAttempts}
           </span>
         </div>
         <div>
-          <span className={styles.metaLabel}>Items collected</span>
-          <span className={styles.metaValue}>{job.itemsCollected}</span>
-        </div>
-        <div>
           <span className={styles.metaLabel}>Duration</span>
           <span className={styles.metaValue}>{duration}</span>
         </div>
+        {metrics?.articlesDownloaded != null && (
+          <div>
+            <span className={styles.metaLabel}>Downloaded</span>
+            <span className={styles.metaValue}>{metrics.articlesDownloaded}</span>
+          </div>
+        )}
+        {metrics?.articlesImported != null && (
+          <div>
+            <span className={styles.metaLabel}>Imported</span>
+            <span className={styles.metaValue}>{metrics.articlesImported}</span>
+          </div>
+        )}
+        {metrics?.duplicates != null && (
+          <div>
+            <span className={styles.metaLabel}>Duplicates</span>
+            <span className={styles.metaValue}>{metrics.duplicates}</span>
+          </div>
+        )}
+        {metrics?.entitiesExtracted != null && (
+          <div>
+            <span className={styles.metaLabel}>Entities</span>
+            <span className={styles.metaValue}>{metrics.entitiesExtracted}</span>
+          </div>
+        )}
+        {metrics?.httpStatus != null && (
+          <div>
+            <span className={styles.metaLabel}>HTTP status</span>
+            <span className={styles.metaValue}>{metrics.httpStatus}</span>
+          </div>
+        )}
       </div>
+
+      {(metrics?.briefGenerated ||
+        metrics?.timelineUpdated ||
+        metrics?.graphUpdated ||
+        metrics?.alertsEvaluated != null) && (
+        <div className={styles.pipelineFlags}>
+          {metrics.briefGenerated && <span className={styles.flag}>Brief generated</span>}
+          {metrics.timelineUpdated && <span className={styles.flag}>Timeline updated</span>}
+          {metrics.graphUpdated && <span className={styles.flag}>Graph updated</span>}
+          {metrics.alertsEvaluated != null && (
+            <span className={styles.flag}>{metrics.alertsEvaluated} alerts</span>
+          )}
+        </div>
+      )}
 
       <div className={styles.timestamps}>
         <span>Created: {formatDate(job.createdAt)}</span>
@@ -159,9 +203,15 @@ export function QueueJobCard({ job, queuePosition = 0 }: QueueJobCardProps) {
           <p><strong>Source ID:</strong> {job.sourceId}</p>
           <p><strong>Connector:</strong> {job.connectorType}</p>
           <p><strong>Status:</strong> {job.status}</p>
-          <p><strong>Priority:</strong> {job.priority}</p>
-          <p><strong>Attempts:</strong> {job.attempts} of {job.maxAttempts}</p>
+          <p><strong>Started:</strong> {job.startedAt ? formatDate(job.startedAt) : '—'}</p>
+          <p><strong>Finished:</strong> {job.completedAt ? formatDate(job.completedAt) : '—'}</p>
           <p><strong>Items collected:</strong> {job.itemsCollected}</p>
+          {metrics?.providerResponse && (
+            <p><strong>Provider response:</strong> {metrics.providerResponse}</p>
+          )}
+          {metrics?.syncHistoryId && (
+            <p><strong>Sync history ID:</strong> {metrics.syncHistoryId}</p>
+          )}
         </div>
       )}
 

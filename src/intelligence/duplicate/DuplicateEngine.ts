@@ -16,6 +16,7 @@ import type {
 import {
   buildTitleDateKey,
 } from '@/intelligence/duplicate/DuplicateResult'
+import type { DuplicateDetectionMode } from '@/types/connectorSettings'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import { supabase } from '@/lib/supabase'
@@ -85,6 +86,14 @@ function checkBatchDuplicate(
     return true
   }
 
+  if (fingerprint.providerIdKey && batchState.providerIds.has(fingerprint.providerIdKey)) {
+    return true
+  }
+
+  if (fingerprint.contentHash && batchState.contentHashes.has(fingerprint.contentHash)) {
+    return true
+  }
+
   return false
 }
 
@@ -95,6 +104,12 @@ function markBatchSeen(fingerprint: ArticleFingerprint, batchState: DuplicateBat
     buildTitleDateKey(fingerprint.normalizedTitle, fingerprint.publishedDateKey),
   )
   batchState.fingerprints.add(fingerprint.fingerprint)
+  if (fingerprint.providerIdKey) {
+    batchState.providerIds.add(fingerprint.providerIdKey)
+  }
+  if (fingerprint.contentHash) {
+    batchState.contentHashes.add(fingerprint.contentHash)
+  }
 }
 
 async function mapArticleRecord(
@@ -108,6 +123,8 @@ async function mapArticleRecord(
     title,
     url,
     publishedAt: published_at,
+    summary: String(row.summary ?? ''),
+    content: String(row.content ?? ''),
   })
 
   return {
@@ -123,6 +140,8 @@ async function mapArticleRecord(
     normalizedTitle: fingerprint.normalizedTitle,
     publishedDateKey: fingerprint.publishedDateKey,
     fingerprint: fingerprint.fingerprint,
+    contentHash: fingerprint.contentHash,
+    providerIdKey: fingerprint.providerIdKey,
   }
 }
 
@@ -176,6 +195,8 @@ export class DuplicateEngine {
     const byNormalizedTitle = new Map<string, ExistingArticleRecord[]>()
     const byTitleDate = new Map<string, ExistingArticleRecord>()
     const byFingerprint = new Map<string, ExistingArticleRecord>()
+    const byContentHash = new Map<string, ExistingArticleRecord>()
+    const byProviderId = new Map<string, ExistingArticleRecord>()
 
     for (const record of records) {
       if (!byUrl.has(record.normalizedUrl)) {
@@ -194,6 +215,14 @@ export class DuplicateEngine {
       if (!byFingerprint.has(record.fingerprint)) {
         byFingerprint.set(record.fingerprint, record)
       }
+
+      if (record.contentHash && !byContentHash.has(record.contentHash)) {
+        byContentHash.set(record.contentHash, record)
+      }
+
+      if (record.providerIdKey && !byProviderId.has(record.providerIdKey)) {
+        byProviderId.set(record.providerIdKey, record)
+      }
     }
 
     return {
@@ -201,6 +230,8 @@ export class DuplicateEngine {
       byNormalizedTitle,
       byTitleDate,
       byFingerprint,
+      byContentHash,
+      byProviderId,
       records,
     }
   }
@@ -210,6 +241,7 @@ export class DuplicateEngine {
     fingerprint: ArticleFingerprint,
     index: ExistingArticleIndex,
     batchState: DuplicateBatchState,
+    mode: DuplicateDetectionMode = 'normal',
   ): DuplicateCheckResult {
     if (checkBatchDuplicate(fingerprint, batchState)) {
       return { classification: 'duplicate', reason: 'batch_duplicate' }
@@ -220,9 +252,35 @@ export class DuplicateEngine {
       return classifyFromMatch(urlMatch, item, 'url')
     }
 
+    if (fingerprint.providerIdKey) {
+      const providerMatch = index.byProviderId.get(fingerprint.providerIdKey)
+      if (providerMatch) {
+        return classifyFromMatch(providerMatch, item, 'provider_id')
+      }
+    }
+
+    if (fingerprint.contentHash) {
+      const contentMatch = index.byContentHash.get(fingerprint.contentHash)
+      if (contentMatch) {
+        return classifyFromMatch(contentMatch, item, 'content_hash')
+      }
+    }
+
+    if (mode === 'strict') {
+      return { classification: 'new' }
+    }
+
     const titleMatches = index.byNormalizedTitle.get(fingerprint.normalizedTitle)
     if (titleMatches && titleMatches.length > 0) {
       return classifyFromMatch(titleMatches[0], item, 'title')
+    }
+
+    if (mode === 'lenient') {
+      const fingerprintMatch = index.byFingerprint.get(fingerprint.fingerprint)
+      if (fingerprintMatch) {
+        return classifyFromMatch(fingerprintMatch, item, 'fingerprint')
+      }
+      return { classification: 'new' }
     }
 
     const titleDateKey = buildTitleDateKey(
@@ -246,7 +304,15 @@ export class DuplicateEngine {
     return Promise.all(
       items.map(async (item) => ({
         item,
-        fingerprint: await buildFingerprintFromItem(item),
+        fingerprint: await buildFingerprintFromItem({
+          id: item.id,
+          connectorType: item.connectorType,
+          title: item.title,
+          url: item.url,
+          publishedAt: item.publishedAt,
+          summary: item.summary,
+          content: item.content,
+        }),
       })),
     )
   }

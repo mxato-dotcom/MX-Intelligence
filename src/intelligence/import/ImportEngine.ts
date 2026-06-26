@@ -1,47 +1,29 @@
 import { duplicateEngine } from '@/intelligence/duplicate/DuplicateEngine'
 import { createDuplicateBatchState } from '@/intelligence/duplicate/DuplicateResult'
 import type { DuplicateEngineImportResult } from '@/intelligence/duplicate/DuplicateResult'
-import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
-import { rebuildFusionClusters } from '@/services/fusionClusterService'
-import { extractAndStoreForArticleIds } from '@/services/entityExtractionService'
-import { generateAndStoreDailyBrief } from '@/services/dailyBriefService'
 import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { safeSlice, safeStringOr, safeTrim } from '@/lib/safeString'
 import { supabase } from '@/lib/supabase'
-import * as sourceService from '@/services/sourceService'
+import { isMissingColumnError } from '@/lib/supabaseErrors'
+import { buildArticleMetadata } from '@/services/providerNormalizer'
+import { runPostImportPipeline } from '@/services/postImportPipelineService'
 import type { Source } from '@/types/source'
 
-export type ImportEngineResult = DuplicateEngineImportResult
+export interface ImportEngineResult extends DuplicateEngineImportResult {
+  processedArticleIds?: string[]
+  entitiesExtracted?: number
+  briefGenerated?: boolean
+  timelineUpdated?: boolean
+  graphUpdated?: boolean
+  alertsEvaluated?: number
+}
 
 export interface ImportOptions {
   source?: Source
   downloaded?: number
   connectorHealthy?: boolean
-}
-
-async function finalizeSourceImport(
-  source: Source,
-  downloaded: number,
-  result: ImportEngineResult,
-  connectorHealthy = true,
-  processedArticleIds: string[] = [],
-): Promise<void> {
-  await sourceService.updateSourceAfterImport(source.id, result.imported + result.updated)
-  const refreshed = await sourceService.getSourceById(source.id) ?? source
-  await trustScoreEngine.recordImportAndRecalculate(
-    refreshed,
-    downloaded,
-    result,
-    connectorHealthy,
-  )
-  await rebuildFusionClusters()
-  await extractAndStoreForArticleIds(processedArticleIds)
-
-  try {
-    await generateAndStoreDailyBrief()
-  } catch {
-    // Brief generation should not block import completion
-  }
+  duplicateMode?: 'strict' | 'normal' | 'lenient'
+  syncId?: string | null
 }
 
 export async function importIntelligenceItems(
@@ -50,14 +32,28 @@ export async function importIntelligenceItems(
   options?: ImportOptions,
 ): Promise<ImportEngineResult> {
   if (items.length === 0) {
-    const emptyResult = { imported: 0, skipped: 0, updated: 0, failed: 0 }
+    const emptyResult: ImportEngineResult = {
+      imported: 0,
+      skipped: 0,
+      updated: 0,
+      failed: 0,
+    }
     if (options?.source) {
-      await finalizeSourceImport(
+      const postImport = await runPostImportPipeline(
         options.source,
         options.downloaded ?? 0,
         emptyResult,
-        options.connectorHealthy,
+        [],
+        { syncId: options.syncId },
       )
+      return {
+        ...emptyResult,
+        entitiesExtracted: postImport.entitiesExtracted,
+        briefGenerated: postImport.briefGenerated,
+        timelineUpdated: postImport.timelineUpdated,
+        graphUpdated: postImport.graphUpdated,
+        alertsEvaluated: postImport.alertsEvaluated,
+      }
     }
     return emptyResult
   }
@@ -65,6 +61,7 @@ export async function importIntelligenceItems(
   const index = await duplicateEngine.buildExistingIndex(items)
   const batchState = createDuplicateBatchState()
   const classifiedItems = await duplicateEngine.classifyItems(items)
+  const duplicateMode = options?.duplicateMode ?? 'normal'
 
   let imported = 0
   let skipped = 0
@@ -73,13 +70,22 @@ export async function importIntelligenceItems(
   const processedArticleIds: string[] = []
 
   for (const { item, fingerprint } of classifiedItems) {
-    const check = duplicateEngine.checkDuplicate(item, fingerprint, index, batchState)
+    const check = duplicateEngine.checkDuplicate(
+      item,
+      fingerprint,
+      index,
+      batchState,
+      duplicateMode,
+    )
     const now = new Date().toISOString()
     const summary = safeTrim(item.summary) || safeSlice(item.content, 0, 280)
     const content = safeTrim(item.content) || summary
     const normalizedUrl = safeTrim(item.url)
 
     if (check.classification === 'duplicate') {
+      if (check.matchedArticleId) {
+        await mergeDuplicateEvidence(check.matchedArticleId, item)
+      }
       skipped += 1
       duplicateEngine.markImported(fingerprint, batchState)
       continue
@@ -113,7 +119,7 @@ export async function importIntelligenceItems(
     }
 
     try {
-      const { data, error } = await supabase.from('articles').insert({
+      const insertPayload = {
         title: safeStringOr(item.title, 'Untitled'),
         source: safeStringOr(item.sourceName, 'Unknown source'),
         url: normalizedUrl,
@@ -124,7 +130,46 @@ export async function importIntelligenceItems(
         published_at: item.publishedAt || now,
         created_at: now,
         created_by: userId,
-      }).select('id').single()
+        metadata: buildArticleMetadata(item),
+      }
+
+      const { data, error } = await supabase.from('articles').insert(insertPayload).select('id').single()
+
+      if (error && isMissingColumnError(error)) {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('articles')
+          .insert({
+            title: insertPayload.title,
+            source: insertPayload.source,
+            url: insertPayload.url,
+            content: insertPayload.content,
+            summary: insertPayload.summary,
+            category: insertPayload.category,
+            image_url: insertPayload.image_url,
+            published_at: insertPayload.published_at,
+            created_at: insertPayload.created_at,
+            created_by: insertPayload.created_by,
+          })
+          .select('id')
+          .single()
+
+        if (fallbackError) {
+          if (fallbackError.code === '23505') {
+            skipped += 1
+            duplicateEngine.markImported(fingerprint, batchState)
+          } else {
+            failed += 1
+          }
+          continue
+        }
+
+        imported += 1
+        if (fallbackData?.id) {
+          processedArticleIds.push(String(fallbackData.id))
+        }
+        duplicateEngine.markImported(fingerprint, batchState)
+        continue
+      }
 
       if (error) {
         if (error.code === '23505') {
@@ -146,17 +191,49 @@ export async function importIntelligenceItems(
     }
   }
 
-  const result = { imported, skipped, updated, failed }
+  const result: ImportEngineResult = { imported, skipped, updated, failed, processedArticleIds }
 
   if (options?.source) {
-    await finalizeSourceImport(
+    const postImport = await runPostImportPipeline(
       options.source,
       options.downloaded ?? items.length,
       result,
-      options.connectorHealthy,
       processedArticleIds,
+      { syncId: options.syncId },
     )
+    return {
+      ...result,
+      entitiesExtracted: postImport.entitiesExtracted,
+      briefGenerated: postImport.briefGenerated,
+      timelineUpdated: postImport.timelineUpdated,
+      graphUpdated: postImport.graphUpdated,
+      alertsEvaluated: postImport.alertsEvaluated,
+    }
   }
 
   return result
+}
+
+async function mergeDuplicateEvidence(
+  articleId: string,
+  item: IntelligenceItem,
+): Promise<void> {
+  try {
+    const { data, error } = await supabase
+      .from('articles')
+      .select('metadata')
+      .eq('id', articleId)
+      .maybeSingle()
+
+    if (error || !data) {
+      return
+    }
+
+    const existing = (data.metadata as Record<string, unknown>) ?? {}
+    const metadata = buildArticleMetadata(item, existing)
+
+    await supabase.from('articles').update({ metadata }).eq('id', articleId)
+  } catch {
+    // Evidence merge is best-effort
+  }
 }

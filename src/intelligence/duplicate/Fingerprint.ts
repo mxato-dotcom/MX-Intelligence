@@ -12,6 +12,8 @@ export interface ArticleFingerprint {
   normalizedUrl: string
   publishedDateKey: string
   fingerprint: string
+  contentHash: string
+  providerIdKey: string | null
 }
 
 const TRACKING_QUERY_PARAMS = [
@@ -91,17 +93,47 @@ export async function buildFingerprint(input: FingerprintInput): Promise<Article
     normalizedUrl,
     publishedDateKey,
     fingerprint,
+    contentHash: '',
+    providerIdKey: null,
   }
 }
 
+export function buildProviderIdKey(connectorType: string, providerId: string): string {
+  return `${connectorType}::${safeTrim(providerId)}`
+}
+
+export async function buildContentHashFromText(text: string): Promise<string> {
+  const normalized = normalizeText(text).slice(0, 2000)
+  if (!normalized) {
+    return ''
+  }
+  return computeContentHash(normalized)
+}
+
 export async function buildFingerprintFromItem(item: {
+  id?: string
+  connectorType?: string
   title: string
   url: string
   publishedAt: string
+  summary?: string
+  content?: string
 }): Promise<ArticleFingerprint> {
-  return buildFingerprint({
+  const base = await buildFingerprint({
     title: safeString(item.title),
     url: safeString(item.url),
     publishedAt: safeString(item.publishedAt),
   })
+
+  const body = safeTrim(item.content) || safeTrim(item.summary)
+  const contentHash = body ? await buildContentHashFromText(body) : ''
+
+  return {
+    ...base,
+    contentHash,
+    providerIdKey:
+      item.id && item.connectorType
+        ? buildProviderIdKey(item.connectorType, item.id)
+        : null,
+  }
 }

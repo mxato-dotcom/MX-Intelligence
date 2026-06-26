@@ -1,0 +1,28 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.connected {
+  background: #22c55e;
+}
+
+.disconnected {
+  background: #ef4444;
+}
+
+.degraded {
+  background: #eab308;
+}
+
+.label {
+  color: var(--color-text-muted);
+}

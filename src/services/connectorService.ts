@@ -1,15 +1,22 @@
 import { getConnector } from '@/intelligence/connector/connectorRegistry'
 import { importIntelligenceItems } from '@/intelligence/import/ImportEngine'
-import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
-import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
+import { mapConnectorError } from '@/lib/connectorErrors'
+import {
+  recordSyncFailure,
+  recordSyncSuccess,
+  sourceTypeToConnectorId,
+} from '@/services/connectorHealthService'
+import { runConnectorImportPipeline } from '@/services/connectorImportPipeline'
+import * as connectorSettingsService from '@/services/connectorSettingsService'
+import type { FeedImportOptions, FeedImportResult } from '@/types/rss'
+import type { Source } from '@/types/source'
 import type {
   ConnectorHealthResult,
   ConnectorPreviewResult,
   ConnectorValidationResult,
 } from '@/intelligence/types'
-import { mapRssError } from '@/lib/rssErrors'
-import type { FeedImportOptions, FeedImportResult } from '@/types/rss'
-import type { Source } from '@/types/source'
+import { trustScoreEngine } from '@/intelligence/scoring/TrustScoreEngine'
+import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 
 function filterSelectedItems(
   items: IntelligenceItem[],
@@ -23,28 +30,44 @@ function filterSelectedItems(
   return items.filter((item) => selected.has(item.id))
 }
 
-async function executeImport(
+async function importPreCollectedItems(
   source: Source,
   userId: string,
   items: IntelligenceItem[],
   selectedIds?: string[],
 ): Promise<FeedImportResult> {
   const startedAt = performance.now()
-  const downloaded = items.length
   const toImport = filterSelectedItems(items, selectedIds)
+  const settings = await connectorSettingsService.getConnectorSettings()
 
   const importResult = await importIntelligenceItems(toImport, userId, {
     source,
-    downloaded,
+    downloaded: toImport.length,
+    duplicateMode: settings.rss.duplicateDetectionMode,
   })
 
+  const durationMs = Math.round(performance.now() - startedAt)
+  const connectorId = sourceTypeToConnectorId(source.source_type)
+
+  if (connectorId) {
+    try {
+      if (importResult.failed > 0 && importResult.imported === 0) {
+        await recordSyncFailure(connectorId, 'Import failed with no articles imported')
+      } else {
+        await recordSyncSuccess(connectorId, durationMs, importResult.imported)
+      }
+    } catch {
+      // best-effort
+    }
+  }
+
   return {
-    downloaded,
+    downloaded: toImport.length,
     imported: importResult.imported,
     skipped: importResult.skipped,
     updated: importResult.updated,
     failed: importResult.failed,
-    durationMs: Math.round(performance.now() - startedAt),
+    durationMs,
   }
 }
 
@@ -64,11 +87,20 @@ export async function previewFeed(source: Source): Promise<ConnectorPreviewResul
 
 export async function collectFeedItems(source: Source): Promise<IntelligenceItem[]> {
   const connector = getConnector(source.source_type)
+  const connectorId = sourceTypeToConnectorId(source.source_type)
 
   try {
     return await connector.collect(source)
   } catch (error) {
-    throw new Error(mapRssError(error))
+    const message = mapConnectorError(error, source.source_type)
+    if (connectorId) {
+      try {
+        await recordSyncFailure(connectorId, message)
+      } catch {
+        // best-effort
+      }
+    }
+    throw new Error(message)
   }
 }
 
@@ -77,15 +109,14 @@ export async function importArticlesFromFeed(
   userId: string,
   selectedIds?: string[],
 ): Promise<FeedImportResult> {
-  const items = await collectFeedItems(source)
-  return executeImport(source, userId, items, selectedIds)
+  return runConnectorImportPipeline(source, userId, selectedIds)
 }
 
 export async function importFeed(options: FeedImportOptions): Promise<FeedImportResult> {
   const { source, userId, selectedIds, items } = options
 
   if (items && items.length > 0) {
-    return executeImport(source, userId, items, selectedIds)
+    return importPreCollectedItems(source, userId, items, selectedIds)
   }
 
   return importArticlesFromFeed(source, userId, selectedIds)

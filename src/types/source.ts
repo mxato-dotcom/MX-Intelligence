@@ -1,5 +1,9 @@
 export const SOURCE_TYPES = [
   'RSS',
+  'NewsAPI',
+  'Google News',
+  'Reddit',
+  'Hacker News',
   'Website',
   'YouTube',
   'X',
@@ -36,6 +40,8 @@ export type SourceCategory = (typeof SOURCE_CATEGORIES)[number]
 export type SourceStatus = (typeof SOURCE_STATUSES)[number]
 export type SourcePriority = (typeof SOURCE_PRIORITIES)[number]
 
+import type { ConnectorConfig } from '@/types/connectorConfig'
+
 export interface Source {
   id: string
   user_id: string
@@ -52,6 +58,7 @@ export interface Source {
   trust_score: number
   last_sync_at: string | null
   items_collected: number | null
+  connector_config?: ConnectorConfig | Record<string, unknown>
 }
 
 export interface CreateSourceInput {
@@ -65,6 +72,7 @@ export interface CreateSourceInput {
   update_interval: string
   trust_score: number
   active: boolean
+  connector_config?: ConnectorConfig
 }
 
 export type UpdateSourceInput = Partial<CreateSourceInput>
