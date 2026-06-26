@@ -135,7 +135,7 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
         : await connectorService.importArticlesFromFeed(source, user.id, selectedIds)
 
       setImportResult(result)
-      setActionSuccess(result.imported > 0 || result.skipped > 0)
+      setActionSuccess(result.imported > 0 || result.skipped > 0 || result.updated > 0)
       setActionMessage(formatImportSummary(result))
       setIsPreviewOpen(false)
       notifyDataRefresh()

@@ -6,6 +6,7 @@ import type { Article, CreateArticleInput } from '@/types/article'
 export interface ArticleImportResult {
   imported: number
   skipped: number
+  updated: number
   failed: number
 }
 

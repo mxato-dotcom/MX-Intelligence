@@ -10,7 +10,8 @@ export function ImportSummaryCard({ result }: ImportSummaryCardProps) {
     <div className={styles.card}>
       <h4 className={styles.title}>Import complete</h4>
       <p className={styles.summaryLine}>
-        Imported {result.imported} · Skipped {result.skipped} · Failed {result.failed}
+        Imported {result.imported} · Duplicates skipped {result.skipped} · Updated{' '}
+        {result.updated} · Failed {result.failed}
       </p>
       <div className={styles.grid}>
         <div className={styles.item}>
@@ -22,8 +23,12 @@ export function ImportSummaryCard({ result }: ImportSummaryCardProps) {
           <span className={styles.value}>{result.imported}</span>
         </div>
         <div className={styles.item}>
-          <span className={styles.label}>Skipped</span>
+          <span className={styles.label}>Duplicates skipped</span>
           <span className={styles.value}>{result.skipped}</span>
+        </div>
+        <div className={styles.item}>
+          <span className={styles.label}>Updated existing</span>
+          <span className={styles.value}>{result.updated}</span>
         </div>
         <div className={styles.item}>
           <span className={styles.label}>Failed</span>
@@ -36,7 +41,7 @@ export function ImportSummaryCard({ result }: ImportSummaryCardProps) {
 }
 
 function formatImportSummary(result: FeedImportResult): string {
-  return `Imported ${result.imported} · Skipped ${result.skipped} · Failed ${result.failed}`
+  return `Imported ${result.imported} · Duplicates skipped ${result.skipped} · Updated ${result.updated} · Failed ${result.failed}`
 }
 
 export { formatImportSummary }

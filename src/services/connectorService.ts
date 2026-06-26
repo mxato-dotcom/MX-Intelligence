@@ -35,12 +35,16 @@ async function executeImport(
 
   const importResult = await importIntelligenceItems(toImport, userId)
 
-  await sourceService.updateSourceAfterImport(source.id, importResult.imported)
+  await sourceService.updateSourceAfterImport(
+    source.id,
+    importResult.imported + importResult.updated,
+  )
 
   return {
     downloaded,
     imported: importResult.imported,
     skipped: importResult.skipped,
+    updated: importResult.updated,
     failed: importResult.failed,
     durationMs: Math.round(performance.now() - startedAt),
   }

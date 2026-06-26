@@ -31,6 +31,7 @@ export interface ConnectorImportResult {
   downloaded: number
   imported: number
   skipped: number
+  updated: number
   failed: number
   durationMs: number
 }
