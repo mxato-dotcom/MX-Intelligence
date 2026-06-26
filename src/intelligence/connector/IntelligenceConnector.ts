@@ -2,7 +2,7 @@ import type {
   ConnectorHealthResult,
   ConnectorPreviewResult,
   ConnectorValidationResult,
-  NormalizedIntelligenceArticle,
+  IntelligenceItem,
 } from '@/intelligence/types'
 import type { Source } from '@/types/source'
 
@@ -14,13 +14,13 @@ export interface IntelligenceConnector {
   validate(source: Source): Promise<ConnectorValidationResult>
   healthCheck(source: Source): Promise<ConnectorHealthResult>
   preview(source: Source): Promise<ConnectorPreviewResult>
-  collect(source: Source): Promise<NormalizedIntelligenceArticle[]>
-  normalize(source: Source, raw: unknown): Promise<NormalizedIntelligenceArticle[]>
+  collect(source: Source): Promise<IntelligenceItem[]>
+  normalize(source: Source, raw: unknown): Promise<IntelligenceItem[]>
 }
 
 export type {
   ConnectorHealthResult,
   ConnectorPreviewResult,
   ConnectorValidationResult,
-  NormalizedIntelligenceArticle,
+  IntelligenceItem,
 }

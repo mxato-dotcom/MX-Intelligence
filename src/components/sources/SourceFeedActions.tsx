@@ -3,7 +3,7 @@ import { FeedPreviewModal } from '@/components/sources/FeedPreviewModal'
 import { formatImportSummary, ImportSummaryCard } from '@/components/sources/ImportSummaryCard'
 import { useAuth } from '@/hooks/useAuth'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
-import type { NormalizedIntelligenceArticle } from '@/intelligence/types'
+import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { mapRssError } from '@/lib/rssErrors'
 import { isConnectorPreviewAvailable } from '@/lib/sourceType'
 import * as connectorService from '@/services/connectorService'
@@ -32,7 +32,7 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
   const [importStage, setImportStage] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [actionSuccess, setActionSuccess] = useState(true)
-  const [previewItems, setPreviewItems] = useState<NormalizedIntelligenceArticle[]>([])
+  const [previewItems, setPreviewItems] = useState<IntelligenceItem[]>([])
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [importResult, setImportResult] = useState<FeedImportResult | null>(null)
 
@@ -103,8 +103,8 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
   }
 
   const runImport = async (
-    selectedHashes?: string[],
-    cachedItems?: NormalizedIntelligenceArticle[],
+    selectedIds?: string[],
+    cachedItems?: IntelligenceItem[],
   ) => {
     if (!canUseConnector) {
       setActionSuccess(false)
@@ -129,10 +129,10 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
         ? await connectorService.importFeed({
             source,
             userId: user.id,
-            selectedHashes,
+            selectedIds,
             items: cachedItems,
           })
-        : await connectorService.importArticlesFromFeed(source, user.id, selectedHashes)
+        : await connectorService.importArticlesFromFeed(source, user.id, selectedIds)
 
       setImportResult(result)
       setActionSuccess(result.imported > 0 || result.skipped > 0)
@@ -149,8 +149,8 @@ export function SourceFeedActions({ source, onSourceUpdated, compact = false }: 
     }
   }
 
-  const handleImportSelected = async (selectedHashes: string[]) => {
-    await runImport(selectedHashes, previewItems)
+  const handleImportSelected = async (selectedIds: string[]) => {
+    await runImport(selectedIds, previewItems)
   }
 
   const handleImportAll = async () => {

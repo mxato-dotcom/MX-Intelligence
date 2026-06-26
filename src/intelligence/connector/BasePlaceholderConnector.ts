@@ -3,7 +3,7 @@ import type {
   ConnectorHealthResult,
   ConnectorPreviewResult,
   ConnectorValidationResult,
-  NormalizedIntelligenceArticle,
+  IntelligenceItem,
 } from '@/intelligence/types'
 import type { Source } from '@/types/source'
 
@@ -36,11 +36,11 @@ export abstract class BasePlaceholderConnector implements IntelligenceConnector 
     }
   }
 
-  async collect(_source: Source): Promise<NormalizedIntelligenceArticle[]> {
+  async collect(_source: Source): Promise<IntelligenceItem[]> {
     throw new Error(NOT_IMPLEMENTED_MESSAGE)
   }
 
-  async normalize(_source: Source, _raw: unknown): Promise<NormalizedIntelligenceArticle[]> {
+  async normalize(_source: Source, _raw: unknown): Promise<IntelligenceItem[]> {
     throw new Error(NOT_IMPLEMENTED_MESSAGE)
   }
 }

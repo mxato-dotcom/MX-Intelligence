@@ -3,9 +3,11 @@ import type {
   ConnectorHealthResult,
   ConnectorPreviewResult,
   ConnectorValidationResult,
-  NormalizedIntelligenceArticle,
+  IntelligenceItem,
 } from '@/intelligence/types'
 import { mapRssError } from '@/lib/rssErrors'
+import { getNormalizer } from '@/intelligence/normalizers/normalizerRegistry'
+import { RSSNormalizer } from '@/intelligence/normalizers/RSSNormalizer'
 import * as rssService from '@/services/rssService'
 import type { ParsedRSSFeed } from '@/types/rss'
 import type { Source } from '@/types/source'
@@ -77,14 +79,25 @@ export class RSSConnector implements IntelligenceConnector {
     }
   }
 
-  async collect(source: Source): Promise<NormalizedIntelligenceArticle[]> {
+  async collect(source: Source): Promise<IntelligenceItem[]> {
     const xml = await rssService.fetchFeed(source.url)
     const parsed = rssService.parseFeed(xml)
     return this.normalize(source, parsed)
   }
 
-  async normalize(source: Source, raw: unknown): Promise<NormalizedIntelligenceArticle[]> {
-    return rssService.normalizeFeed(raw as ParsedRSSFeed, source)
+  async normalize(source: Source, raw: unknown): Promise<IntelligenceItem[]> {
+    const parsed = raw as ParsedRSSFeed
+    const normalizer = getNormalizer<ParsedRSSFeed['items'][number]>('RSS')
+
+    if (normalizer instanceof RSSNormalizer) {
+      return normalizer.normalizeFeed(parsed, source)
+    }
+
+    return normalizer.normalizeMany(parsed.items, {
+      source,
+      connectorType: this.type,
+      feedLanguage: parsed.language,
+    })
   }
 }
 

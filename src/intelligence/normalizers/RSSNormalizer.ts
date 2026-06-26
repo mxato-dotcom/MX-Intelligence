@@ -1,45 +1,53 @@
 import { computeArticleHash } from '@/lib/hash'
-import type { NormalizedIntelligenceArticle } from '@/intelligence/types'
+import type { Normalizer, NormalizerContext } from '@/intelligence/normalizers/Normalizer'
+import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import type { ParsedRSSFeed, ParsedRSSItem } from '@/types/rss'
 import type { Source } from '@/types/source'
 
-export class RSSNormalizer {
-  async normalize(parsed: ParsedRSSFeed, source: Source): Promise<NormalizedIntelligenceArticle[]> {
-    const normalized: NormalizedIntelligenceArticle[] = []
+export class RSSNormalizer implements Normalizer<ParsedRSSItem> {
+  readonly type = 'RSS'
 
-    for (const item of parsed.items) {
-      normalized.push(await this.normalizeItem(item, source, parsed.language))
+  async normalizeFeed(parsed: ParsedRSSFeed, source: Source): Promise<IntelligenceItem[]> {
+    const context: NormalizerContext = {
+      source,
+      connectorType: this.type,
+      feedLanguage: parsed.language,
     }
 
-    return normalized
+    return this.normalizeMany(parsed.items, context)
   }
 
-  private async normalizeItem(
-    item: ParsedRSSItem,
-    source: Source,
-    feedLanguage: string | null,
-  ): Promise<NormalizedIntelligenceArticle> {
+  async normalize(item: ParsedRSSItem, context: NormalizerContext): Promise<IntelligenceItem> {
+    const source = context.source
     const title = item.title.trim() || 'Untitled'
     const url = item.url.trim()
     const summary = item.summary.trim() || item.content.trim().slice(0, 280)
     const content = item.content.trim() || summary
     const category = source.category.trim() || 'Uncategorized'
-    const hash = await computeArticleHash(url, title)
+    const id = await computeArticleHash(url, title)
 
     return {
+      id,
+      connectorType: context.connectorType,
+      sourceId: source.id,
+      sourceName: source.name,
+      category,
       title,
       summary,
       content,
       url,
-      image: item.image,
-      author: item.author,
-      category,
-      published_at: item.published_at,
-      language: item.language ?? feedLanguage,
-      source: source.name,
-      external_id: item.external_id,
-      hash,
+      imageUrl: item.image ?? undefined,
+      author: item.author ?? undefined,
+      publishedAt: item.published_at,
+      language: item.language ?? context.feedLanguage ?? undefined,
+      tags: [],
+      trustScore: source.trust_score,
+      rawData: item,
     }
+  }
+
+  async normalizeMany(items: ParsedRSSItem[], context: NormalizerContext): Promise<IntelligenceItem[]> {
+    return Promise.all(items.map((item) => this.normalize(item, context)))
   }
 }
 

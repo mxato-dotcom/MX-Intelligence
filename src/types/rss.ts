@@ -1,4 +1,4 @@
-import type { NormalizedIntelligenceArticle } from '@/intelligence/types'
+import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import type { Source } from '@/types/source'
 
 export interface ParsedRSSItem {
@@ -21,7 +21,7 @@ export interface ParsedRSSFeed {
 
 export interface FeedPreviewResult {
   success: boolean
-  items: NormalizedIntelligenceArticle[]
+  items: IntelligenceItem[]
   downloaded: number
   error?: string
   durationMs: number
@@ -38,8 +38,8 @@ export interface FeedImportResult {
 export interface FeedImportOptions {
   source: Source
   userId: string
-  selectedHashes?: string[]
-  items?: NormalizedIntelligenceArticle[]
+  selectedIds?: string[]
+  items?: IntelligenceItem[]
 }
 
 export interface FetchRssSuccessResponse {

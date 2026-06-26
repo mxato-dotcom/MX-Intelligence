@@ -1,39 +1,39 @@
 import { getConnector } from '@/intelligence/connector/connectorRegistry'
-import type { NormalizedIntelligenceArticle } from '@/intelligence/types'
+import { importIntelligenceItems } from '@/intelligence/import/ImportEngine'
+import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import type {
   ConnectorHealthResult,
   ConnectorPreviewResult,
   ConnectorValidationResult,
 } from '@/intelligence/types'
 import { mapRssError } from '@/lib/rssErrors'
-import * as articleService from '@/services/articleService'
 import * as sourceService from '@/services/sourceService'
 import type { FeedImportOptions, FeedImportResult } from '@/types/rss'
 import type { Source } from '@/types/source'
 
 function filterSelectedItems(
-  items: NormalizedIntelligenceArticle[],
-  selectedHashes?: string[],
-): NormalizedIntelligenceArticle[] {
-  if (!selectedHashes || selectedHashes.length === 0) {
+  items: IntelligenceItem[],
+  selectedIds?: string[],
+): IntelligenceItem[] {
+  if (!selectedIds || selectedIds.length === 0) {
     return items
   }
 
-  const selected = new Set(selectedHashes)
-  return items.filter((item) => selected.has(item.hash))
+  const selected = new Set(selectedIds)
+  return items.filter((item) => selected.has(item.id))
 }
 
 async function executeImport(
   source: Source,
   userId: string,
-  items: NormalizedIntelligenceArticle[],
-  selectedHashes?: string[],
+  items: IntelligenceItem[],
+  selectedIds?: string[],
 ): Promise<FeedImportResult> {
   const startedAt = performance.now()
   const downloaded = items.length
-  const toImport = filterSelectedItems(items, selectedHashes)
+  const toImport = filterSelectedItems(items, selectedIds)
 
-  const importResult = await articleService.importNormalizedArticles(toImport, userId)
+  const importResult = await importIntelligenceItems(toImport, userId)
 
   await sourceService.updateSourceAfterImport(source.id, importResult.imported)
 
@@ -58,7 +58,7 @@ export async function previewFeed(source: Source): Promise<ConnectorPreviewResul
   return getConnector(source.source_type).preview(source)
 }
 
-export async function collectFeedItems(source: Source): Promise<NormalizedIntelligenceArticle[]> {
+export async function collectFeedItems(source: Source): Promise<IntelligenceItem[]> {
   const connector = getConnector(source.source_type)
 
   try {
@@ -71,18 +71,18 @@ export async function collectFeedItems(source: Source): Promise<NormalizedIntell
 export async function importArticlesFromFeed(
   source: Source,
   userId: string,
-  selectedHashes?: string[],
+  selectedIds?: string[],
 ): Promise<FeedImportResult> {
   const items = await collectFeedItems(source)
-  return executeImport(source, userId, items, selectedHashes)
+  return executeImport(source, userId, items, selectedIds)
 }
 
 export async function importFeed(options: FeedImportOptions): Promise<FeedImportResult> {
-  const { source, userId, selectedHashes, items } = options
+  const { source, userId, selectedIds, items } = options
 
   if (items && items.length > 0) {
-    return executeImport(source, userId, items, selectedHashes)
+    return executeImport(source, userId, items, selectedIds)
   }
 
-  return importArticlesFromFeed(source, userId, selectedHashes)
+  return importArticlesFromFeed(source, userId, selectedIds)
 }

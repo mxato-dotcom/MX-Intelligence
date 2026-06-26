@@ -86,7 +86,7 @@ export class RSSCollector extends BaseCollector {
         url: item.url,
         summary: item.summary,
         category: item.category,
-        publishedAt: item.published_at,
+        publishedAt: item.publishedAt,
         sourceType: this.type,
       })),
     )

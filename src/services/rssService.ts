@@ -1,17 +1,16 @@
 import { XMLParser } from 'fast-xml-parser'
-import { rssNormalizer } from '@/intelligence/normalizers/RSSNormalizer'
-import type { NormalizedIntelligenceArticle } from '@/intelligence/types'
-import { supabase } from '@/lib/supabase'
+import { importIntelligenceItems } from '@/intelligence/import/ImportEngine'
+import { getNormalizer } from '@/intelligence/normalizers/normalizerRegistry'
+import { RSSNormalizer } from '@/intelligence/normalizers/RSSNormalizer'
+import type { IntelligenceItem } from '@/intelligence/types/IntelligenceItem'
 import { mapRssError } from '@/lib/rssErrors'
-import * as articleService from '@/services/articleService'
+import { supabase } from '@/lib/supabase'
 import * as sourceService from '@/services/sourceService'
 import type {
   FeedImportOptions,
   FeedImportResult,
   FeedPreviewResult,
-  FetchRssResponse,
   ParsedRSSFeed,
-  ParsedRSSItem,
 } from '@/types/rss'
 import type { Source } from '@/types/source'
 
@@ -68,7 +67,7 @@ function extractImage(item: Record<string, unknown>): string | null {
   return null
 }
 
-function mapRssItem(item: Record<string, unknown>, feedLanguage: string | null): ParsedRSSItem | null {
+function mapRssItem(item: Record<string, unknown>, feedLanguage: string | null) {
   const title = textValue(item.title)
   const url =
     textValue(item.link) ||
@@ -97,7 +96,7 @@ function mapRssItem(item: Record<string, unknown>, feedLanguage: string | null):
   }
 }
 
-function mapAtomEntry(entry: Record<string, unknown>, feedLanguage: string | null): ParsedRSSItem | null {
+function mapAtomEntry(entry: Record<string, unknown>, feedLanguage: string | null) {
   const title = textValue(entry.title)
   const linkNode = entry.link as Record<string, unknown> | Record<string, unknown>[] | undefined
   let url = ''
@@ -149,7 +148,7 @@ export async function fetchFeed(url: string): Promise<string> {
     throw new Error('Invalid URL')
   }
 
-  const { data, error } = await supabase.functions.invoke<FetchRssResponse>('fetch-rss', {
+  const { data, error } = await supabase.functions.invoke('fetch-rss', {
     body: { url: trimmedUrl },
   })
 
@@ -190,7 +189,7 @@ export function parseFeed(xml: string): ParsedRSSFeed {
       const feedLanguage = textValue(channel.language) || null
       const items = asArray(channel.item as Record<string, unknown> | Record<string, unknown>[] | undefined)
         .map((item) => mapRssItem(item, feedLanguage))
-        .filter((item): item is ParsedRSSItem => item !== null)
+        .filter((item): item is NonNullable<typeof item> => item !== null)
 
       if (items.length === 0) {
         throw new Error('Feed contains no items')
@@ -207,7 +206,7 @@ export function parseFeed(xml: string): ParsedRSSFeed {
       const feedLanguage = textValue(atomFeed.language) || null
       const entries = asArray(atomFeed.entry as Record<string, unknown> | Record<string, unknown>[] | undefined)
         .map((entry) => mapAtomEntry(entry, feedLanguage))
-        .filter((item): item is ParsedRSSItem => item !== null)
+        .filter((item): item is NonNullable<typeof item> => item !== null)
 
       if (entries.length === 0) {
         throw new Error('Feed contains no items')
@@ -232,39 +231,39 @@ export function parseFeed(xml: string): ParsedRSSFeed {
 export async function normalizeFeed(
   parsed: ParsedRSSFeed,
   source: Source,
-): Promise<NormalizedIntelligenceArticle[]> {
-  return rssNormalizer.normalize(parsed, source)
+): Promise<IntelligenceItem[]> {
+  const normalizer = getNormalizer<ParsedRSSFeed['items'][number]>('RSS')
+
+  if (normalizer instanceof RSSNormalizer) {
+    return normalizer.normalizeFeed(parsed, source)
+  }
+
+  return normalizer.normalizeMany(parsed.items, {
+    source,
+    connectorType: 'RSS',
+    feedLanguage: parsed.language,
+  })
 }
 
-export async function collectFeedItems(source: Source): Promise<NormalizedIntelligenceArticle[]> {
+export async function collectFeedItems(source: Source): Promise<IntelligenceItem[]> {
   const xml = await fetchFeed(source.url)
   const parsed = parseFeed(xml)
   return normalizeFeed(parsed, source)
 }
 
-function filterSelectedItems(
-  items: NormalizedIntelligenceArticle[],
-  selectedHashes?: string[],
-): NormalizedIntelligenceArticle[] {
-  if (!selectedHashes || selectedHashes.length === 0) {
-    return items
-  }
-
-  const selected = new Set(selectedHashes)
-  return items.filter((item) => selected.has(item.hash))
-}
-
 async function executeImport(
   source: Source,
   userId: string,
-  items: NormalizedIntelligenceArticle[],
-  selectedHashes?: string[],
+  items: IntelligenceItem[],
+  selectedIds?: string[],
 ): Promise<FeedImportResult> {
   const startedAt = performance.now()
   const downloaded = items.length
-  const toImport = filterSelectedItems(items, selectedHashes)
 
-  const importResult = await articleService.importNormalizedArticles(toImport, userId)
+  const selected = selectedIds && selectedIds.length > 0 ? new Set(selectedIds) : null
+  const toImport = selected ? items.filter((item) => selected.has(item.id)) : items
+
+  const importResult = await importIntelligenceItems(toImport, userId)
 
   await sourceService.updateSourceAfterImport(source.id, importResult.imported)
 
@@ -280,10 +279,10 @@ async function executeImport(
 export async function importArticlesFromFeed(
   source: Source,
   userId: string,
-  selectedHashes?: string[],
+  selectedIds?: string[],
 ): Promise<FeedImportResult> {
   const items = await collectFeedItems(source)
-  return executeImport(source, userId, items, selectedHashes)
+  return executeImport(source, userId, items, selectedIds)
 }
 
 export async function previewFeed(source: Source): Promise<FeedPreviewResult> {
@@ -310,11 +309,11 @@ export async function previewFeed(source: Source): Promise<FeedPreviewResult> {
 }
 
 export async function importFeed(options: FeedImportOptions): Promise<FeedImportResult> {
-  const { source, userId, selectedHashes, items } = options
+  const { source, userId, selectedIds, items } = options
 
   if (items && items.length > 0) {
-    return executeImport(source, userId, items, selectedHashes)
+    return executeImport(source, userId, items, selectedIds)
   }
 
-  return importArticlesFromFeed(source, userId, selectedHashes)
+  return importArticlesFromFeed(source, userId, selectedIds)
 }
