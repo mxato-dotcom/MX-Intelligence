@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { EntityLink } from '@/components/entities/EntityLink'
 import type { TopRelationship } from '@/types/graph'
 import { ROUTES } from '@/lib/constants'
 import styles from './GraphRelationshipsCard.module.css'
@@ -32,7 +33,9 @@ export function GraphRelationshipsCard({ relationships }: GraphRelationshipsCard
         {relationships.map((relationship) => (
           <li key={`${relationship.entityA}-${relationship.entityB}`} className={styles.item}>
             <p className={styles.pair}>
-              {relationship.entityA} ↔ {relationship.entityB}
+              <EntityLink label={relationship.entityA} className={styles.entityLink} />
+              {' ↔ '}
+              <EntityLink label={relationship.entityB} className={styles.entityLink} />
             </p>
             <p className={styles.meta}>
               Confidence {relationship.confidence}% · Evidence {relationship.evidenceCount}

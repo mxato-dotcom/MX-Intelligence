@@ -144,6 +144,16 @@
   border-color: var(--color-accent);
 }
 
+.entityLink {
+  color: var(--color-accent-hover);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.entityLink:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   .card,
   .cardCompact {

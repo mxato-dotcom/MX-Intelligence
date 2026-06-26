@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { EntityLink } from '@/components/entities/EntityLink'
 import type { TimelineEvent } from '@/types/timeline'
 import { articleDetailPath, briefDetailPath, ROUTES } from '@/lib/constants'
 import { formatDate } from '@/lib/format'
@@ -64,7 +65,15 @@ export function TimelineEventCard({ event, compact = false }: TimelineEventCardP
         <div className={styles.meta}>
           <span>Source: {event.source}</span>
           {event.relatedEntities.length > 0 && (
-            <span>Entities: {event.relatedEntities.slice(0, 4).join(', ')}</span>
+            <span>
+              Entities:{' '}
+              {event.relatedEntities.slice(0, 4).map((entity, index) => (
+                <span key={entity}>
+                  {index > 0 ? ', ' : ''}
+                  <EntityLink label={entity} className={styles.entityLink} />
+                </span>
+              ))}
+            </span>
           )}
         </div>
 

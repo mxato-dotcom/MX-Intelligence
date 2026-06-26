@@ -1,5 +1,7 @@
+import { Link } from 'react-router-dom'
 import type { ArticleEntityRecord, GroupedArticleEntities } from '@/intelligence/entities/Entity'
 import type { EntityType } from '@/intelligence/entities/EntityType'
+import { entityDetailPath } from '@/lib/constants'
 import styles from './ArticleEntityList.module.css'
 
 interface ArticleEntityListProps {
@@ -84,10 +86,14 @@ export function ArticleEntityList({ groups, isLoading, error }: ArticleEntityLis
             <h4 className={styles.groupTitle}>{section.label}</h4>
             <div className={styles.entityList}>
               {section.entities.map((entity) => (
-                <span key={entity.id} className={styles.entityChip}>
+                <Link
+                  key={entity.id}
+                  to={entityDetailPath(entity.entity_type, entity.normalized_text)}
+                  className={styles.entityChip}
+                >
                   <span className={styles.entityText}>{entity.entity_text}</span>
                   <span className={styles.entityConfidence}>{entity.confidence}%</span>
-                </span>
+                </Link>
               ))}
             </div>
           </div>

@@ -5,7 +5,7 @@ import { TimelineDashboardCard } from '@/components/dashboard/TimelineDashboardC
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
-import { articleDetailPath, videoDetailPath, ROUTES } from '@/lib/constants'
+import { articleDetailPath, videoDetailPath, ROUTES, entityDetailPath } from '@/lib/constants'
 import { safeStringOr } from '@/lib/safeString'
 import styles from './DashboardPage.module.css'
 
@@ -147,45 +147,90 @@ export function DashboardPage() {
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Top Organizations</p>
-          <p className={styles.statValueSmall}>
-            {entityStats.topOrganizations[0]?.normalizedText ?? '—'}
-          </p>
+          {entityStats.topOrganizations[0] ? (
+            <Link
+              to={entityDetailPath('Organization', entityStats.topOrganizations[0].normalizedText)}
+              className={styles.statLink}
+            >
+              <p className={styles.statValueSmall}>
+                {entityStats.topOrganizations[0].normalizedText}
+              </p>
+            </Link>
+          ) : (
+            <p className={styles.statValueSmall}>—</p>
+          )}
           {entityStats.topOrganizations[0] && (
             <p className={styles.statSubvalue}>{entityStats.topOrganizations[0].count} mentions</p>
           )}
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Top Companies</p>
-          <p className={styles.statValueSmall}>
-            {entityStats.topCompanies[0]?.normalizedText ?? '—'}
-          </p>
+          {entityStats.topCompanies[0] ? (
+            <Link
+              to={entityDetailPath('Company', entityStats.topCompanies[0].normalizedText)}
+              className={styles.statLink}
+            >
+              <p className={styles.statValueSmall}>
+                {entityStats.topCompanies[0].normalizedText}
+              </p>
+            </Link>
+          ) : (
+            <p className={styles.statValueSmall}>—</p>
+          )}
           {entityStats.topCompanies[0] && (
             <p className={styles.statSubvalue}>{entityStats.topCompanies[0].count} mentions</p>
           )}
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Top Countries</p>
-          <p className={styles.statValueSmall}>
-            {entityStats.topCountries[0]?.normalizedText ?? '—'}
-          </p>
+          {entityStats.topCountries[0] ? (
+            <Link
+              to={entityDetailPath('Country', entityStats.topCountries[0].normalizedText)}
+              className={styles.statLink}
+            >
+              <p className={styles.statValueSmall}>
+                {entityStats.topCountries[0].normalizedText}
+              </p>
+            </Link>
+          ) : (
+            <p className={styles.statValueSmall}>—</p>
+          )}
           {entityStats.topCountries[0] && (
             <p className={styles.statSubvalue}>{entityStats.topCountries[0].count} mentions</p>
           )}
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Top Technologies</p>
-          <p className={styles.statValueSmall}>
-            {entityStats.topTechnologies[0]?.normalizedText ?? '—'}
-          </p>
+          {entityStats.topTechnologies[0] ? (
+            <Link
+              to={entityDetailPath('Technology', entityStats.topTechnologies[0].normalizedText)}
+              className={styles.statLink}
+            >
+              <p className={styles.statValueSmall}>
+                {entityStats.topTechnologies[0].normalizedText}
+              </p>
+            </Link>
+          ) : (
+            <p className={styles.statValueSmall}>—</p>
+          )}
           {entityStats.topTechnologies[0] && (
             <p className={styles.statSubvalue}>{entityStats.topTechnologies[0].count} mentions</p>
           )}
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Top Keywords</p>
-          <p className={styles.statValueSmall}>
-            {entityStats.topKeywords[0]?.normalizedText ?? '—'}
-          </p>
+          {entityStats.topKeywords[0] ? (
+            <Link
+              to={entityDetailPath('Keyword', entityStats.topKeywords[0].normalizedText)}
+              className={styles.statLink}
+            >
+              <p className={styles.statValueSmall}>
+                {entityStats.topKeywords[0].normalizedText}
+              </p>
+            </Link>
+          ) : (
+            <p className={styles.statValueSmall}>—</p>
+          )}
           {entityStats.topKeywords[0] && (
             <p className={styles.statSubvalue}>{entityStats.topKeywords[0].count} mentions</p>
           )}

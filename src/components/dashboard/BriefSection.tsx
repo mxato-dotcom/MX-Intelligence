@@ -1,3 +1,4 @@
+import { EntityLink } from '@/components/entities/EntityLink'
 import type { BriefSectionData } from '@/intelligence/brief/BriefTypes'
 import styles from './BriefSection.module.css'
 
@@ -29,7 +30,15 @@ export function BriefSection({ section, compact = false }: BriefSectionProps) {
       <div className={styles.meta}>
         <span>{section.articleCount} supporting articles</span>
         {section.entityLabels.length > 0 && (
-          <span>Entities: {section.entityLabels.slice(0, 4).join(', ')}</span>
+          <span>
+            Entities:{' '}
+            {section.entityLabels.slice(0, 4).map((label, index) => (
+              <span key={label}>
+                {index > 0 ? ', ' : ''}
+                <EntityLink label={label} className={styles.entityLink} />
+              </span>
+            ))}
+          </span>
         )}
       </div>
     </article>

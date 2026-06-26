@@ -1,3 +1,6 @@
+import { buildEntityId } from '@/lib/entityId'
+import type { EntityType } from '@/intelligence/entities/EntityType'
+
 export const ROUTES = {
   LOGIN: '/login',
   SIGNUP: '/signup',
@@ -12,6 +15,7 @@ export const ROUTES = {
   SCHEDULER: '/scheduler',
   QUEUE: '/queue',
   ENTITIES: '/entities',
+  ENTITIES_COMPARE: '/entities/compare',
   BRIEFS: '/briefs',
   ALERTS: '/alerts',
   TIMELINE: '/timeline',
@@ -38,8 +42,25 @@ export function briefDetailPath(id: string): string {
   return `/briefs/${id}`
 }
 
-export function entityDetailPath(normalizedText: string): string {
-  return `/entities/${encodeURIComponent(normalizedText)}`
+export function entityProfilePath(entityId: string): string {
+  return `/entities/${encodeURIComponent(entityId)}`
+}
+
+export function entityDetailPath(entityType: EntityType, normalizedText: string): string {
+  return entityProfilePath(buildEntityId(entityType, normalizedText))
+}
+
+export function entitiesComparePath(entityA?: string, entityB?: string): string {
+  if (!entityA) {
+    return ROUTES.ENTITIES_COMPARE
+  }
+
+  const params = new URLSearchParams({ a: entityA })
+  if (entityB) {
+    params.set('b', entityB)
+  }
+
+  return `${ROUTES.ENTITIES_COMPARE}?${params.toString()}`
 }
 
 export const NAV_ITEMS = [

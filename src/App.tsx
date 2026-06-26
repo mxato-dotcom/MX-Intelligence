@@ -21,6 +21,7 @@ import { SourcesPage } from '@/pages/SourcesPage'
 import { QueuePage } from '@/pages/QueuePage'
 import { EntitiesPage } from '@/pages/EntitiesPage'
 import { EntityProfilePage } from '@/pages/EntityProfilePage'
+import { EntityComparePage } from '@/pages/EntityComparePage'
 import { GraphPage } from '@/pages/GraphPage'
 import { SchedulerPage } from '@/pages/SchedulerPage'
 import { TimelinePage } from '@/pages/TimelinePage'
@@ -54,7 +55,8 @@ export function App() {
             <Route path={ROUTES.QUEUE} element={<QueuePage />} />
             <Route path={ROUTES.TIMELINE} element={<TimelinePage />} />
             <Route path={ROUTES.GRAPH} element={<GraphPage />} />
-            <Route path="/entities/:normalizedText" element={<EntityProfilePage />} />
+            <Route path={ROUTES.ENTITIES_COMPARE} element={<EntityComparePage />} />
+            <Route path="/entities/:entityId" element={<EntityProfilePage />} />
             <Route path={ROUTES.ENTITIES} element={<EntitiesPage />} />
             <Route path={ROUTES.SOURCES_NEW} element={<CreateSourcePage />} />
             <Route path="/sources/:id/edit" element={<EditSourcePage />} />

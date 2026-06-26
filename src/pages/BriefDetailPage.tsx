@@ -4,6 +4,7 @@ import { BriefSection } from '@/components/dashboard/BriefSection'
 import { BriefExportActions } from '@/components/brief/BriefExportActions'
 import { BriefStatusBadge } from '@/components/brief/BriefStatusBadge'
 import { BriefWorkflowActions } from '@/components/brief/BriefWorkflowActions'
+import { EntityLink } from '@/components/entities/EntityLink'
 import { FusionClusterCard } from '@/components/fusion/FusionClusterCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
@@ -224,9 +225,12 @@ export function BriefDetailPage() {
             ) : (
               <div className={styles.chips}>
                 {brief.payload.relatedEntities.map((entity) => (
-                  <span key={`${entity.type}-${entity.label}`} className={styles.chip}>
-                    {entity.label} ({entity.type}, {entity.count})
-                  </span>
+                  <EntityLink
+                    key={`${entity.type}-${entity.label}`}
+                    label={entity.label}
+                    entityType={entity.type}
+                    className={styles.chip}
+                  />
                 ))}
               </div>
             )}

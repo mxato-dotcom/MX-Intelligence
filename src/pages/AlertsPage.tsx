@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { EntityLink } from '@/components/entities/EntityLink'
 import { AlertSeverityBadge } from '@/components/alerts/AlertSeverityBadge'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
@@ -171,7 +172,11 @@ export function AlertsPage() {
                     View related brief
                   </Link>
                 )}
-                {alert.relatedEntity && <span>Entity: {alert.relatedEntity}</span>}
+                {alert.relatedEntity && (
+                  <span>
+                    Entity: <EntityLink label={alert.relatedEntity} className={styles.relatedLink} />
+                  </span>
+                )}
               </div>
 
               <div className={styles.actions}>

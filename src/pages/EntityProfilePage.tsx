@@ -1,27 +1,65 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { GraphExplorer } from '@/components/graph/GraphExplorer'
+import { EntityProfileHeader } from '@/components/entityProfile/EntityProfileHeader'
+import { EntityProfileSummary } from '@/components/entityProfile/EntityProfileStats'
+import { EntityProfileStats } from '@/components/entityProfile/EntityProfileStats'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
-import { articleDetailPath, ROUTES } from '@/lib/constants'
-import { getEntityGraph, getEntityProfile } from '@/services/graphService'
-import type { EntityProfileData, GraphData } from '@/types/graph'
+import { ROUTES } from '@/lib/constants'
+import { getEntityIntelligenceProfile } from '@/services/entityProfileService'
+import type { EntityIntelligenceProfile } from '@/types/entityProfile'
 import styles from './EntityProfilePage.module.css'
 
-export function EntityProfilePage() {
-  const { normalizedText: encodedText } = useParams<{ normalizedText: string }>()
-  const normalizedText = decodeURIComponent(encodedText ?? '')
-  const { refreshToken } = useDataRefresh()
+const LazyEntityProfileTimeline = lazy(() =>
+  import('@/components/entityProfile/EntityProfileTimeline').then((module) => ({
+    default: module.EntityProfileTimeline,
+  })),
+)
 
-  const [profile, setProfile] = useState<EntityProfileData | null>(null)
-  const [graph, setGraph] = useState<GraphData | null>(null)
+const LazyEntityProfileArticles = lazy(() =>
+  import('@/components/entityProfile/EntityProfileSections').then((module) => ({
+    default: module.EntityProfileArticles,
+  })),
+)
+
+const LazyEntityProfileRelatedEntities = lazy(() =>
+  import('@/components/entityProfile/EntityProfileSections').then((module) => ({
+    default: module.EntityProfileRelatedEntities,
+  })),
+)
+
+const LazyEntityProfileClusters = lazy(() =>
+  import('@/components/entityProfile/EntityProfileSections').then((module) => ({
+    default: module.EntityProfileClusters,
+  })),
+)
+
+const LazyEntityProfileSimilar = lazy(() =>
+  import('@/components/entityProfile/EntityProfileSections').then((module) => ({
+    default: module.EntityProfileSimilar,
+  })),
+)
+
+const LazyEntityProfileGraphSection = lazy(() =>
+  import('@/components/entityProfile/EntityProfileGraphSection').then((module) => ({
+    default: module.EntityProfileGraphSection,
+  })),
+)
+
+function SectionFallback() {
+  return <div className={styles.sectionLoading}>Loading section…</div>
+}
+
+export function EntityProfilePage() {
+  const { entityId: rawEntityId = '' } = useParams<{ entityId: string }>()
+  const { refreshToken } = useDataRefresh()
+  const [profile, setProfile] = useState<EntityIntelligenceProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const loadProfile = useCallback(async () => {
-    if (!normalizedText) {
+    if (!rawEntityId) {
       setProfile(null)
-      setGraph(null)
       setIsLoading(false)
       return
     }
@@ -30,19 +68,14 @@ export function EntityProfilePage() {
     setError(null)
 
     try {
-      const [profileData, entityGraph] = await Promise.all([
-        getEntityProfile(normalizedText),
-        getEntityGraph(normalizedText),
-      ])
-
-      setProfile(profileData)
-      setGraph(entityGraph)
+      const data = await getEntityIntelligenceProfile(rawEntityId, true)
+      setProfile(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load entity profile')
     } finally {
       setIsLoading(false)
     }
-  }, [normalizedText])
+  }, [rawEntityId])
 
   useEffect(() => {
     loadProfile()
@@ -50,15 +83,15 @@ export function EntityProfilePage() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Entity Profile" description="Loading entity relationships…">
-        <div className={styles.stateBox}>Loading entity profile…</div>
+      <PageContainer title="Entity Intelligence Profile" description="Loading intelligence profile…">
+        <div className={styles.stateBox}>Loading entity intelligence profile…</div>
       </PageContainer>
     )
   }
 
   if (error) {
     return (
-      <PageContainer title="Entity Profile" description="Entity relationship profile">
+      <PageContainer title="Entity Intelligence Profile" description="Entity investigation profile">
         <div className={`${styles.stateBox} ${styles.stateBoxError}`} role="alert">{error}</div>
       </PageContainer>
     )
@@ -66,110 +99,49 @@ export function EntityProfilePage() {
 
   if (!profile) {
     return (
-      <PageContainer title="Entity Profile" description="Entity relationship profile">
+      <PageContainer title="Entity Intelligence Profile" description="Entity investigation profile">
         <div className={styles.stateBox}>
-          Entity not found. Return to the{' '}
-          <Link to={ROUTES.ENTITIES}>Entities</Link> page to browse extracted entities.
+          Entity not found. Return to the <Link to={ROUTES.ENTITIES}>Entities</Link> page.
         </div>
       </PageContainer>
     )
   }
 
-  const entityNodeId = graph?.nodes.find(
-    (node) =>
-      node.type === 'entity' &&
-      String(node.metadata?.normalizedText ?? '').toLowerCase() === profile.normalizedText,
-  )?.id
-
   return (
     <PageContainer
       title={profile.displayText}
-      description={`${profile.entityType} entity profile and relationship graph`}
+      description={`${profile.entityType} intelligence profile`}
     >
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>Entity Type</p>
-          <p className={styles.statValueSmall}>{profile.entityType}</p>
-        </div>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>Mentions</p>
-          <p className={styles.statValue}>{profile.mentionCount}</p>
-        </div>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>Related Articles</p>
-          <p className={styles.statValue}>{profile.articleCount}</p>
-        </div>
-        <div className={styles.statCard}>
-          <p className={styles.statLabel}>Avg Confidence</p>
-          <p className={styles.statValue}>{profile.averageConfidence}%</p>
-        </div>
-      </div>
+      <EntityProfileHeader profile={profile} />
+      <EntityProfileStats stats={profile.stats} />
+      <EntityProfileSummary summary={profile.summary} />
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Related articles</h3>
-        {profile.relatedArticles.length === 0 ? (
-          <p className={styles.empty}>No related articles found.</p>
-        ) : (
-          <ul className={styles.list}>
-            {profile.relatedArticles.map((article) => (
-              <li key={article.id}>
-                <Link to={articleDetailPath(article.id)} className={styles.listLink}>
-                  <span>{article.title}</span>
-                  <span className={styles.listMeta}>{article.source}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <Suspense fallback={<SectionFallback />}>
+        <LazyEntityProfileTimeline events={profile.timelineEvents} />
+      </Suspense>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Related entities</h3>
-        {profile.relatedEntities.length === 0 ? (
-          <p className={styles.empty}>No co-occurring entities yet.</p>
-        ) : (
-          <ul className={styles.chipList}>
-            {profile.relatedEntities.map((entity) => (
-              <li key={`${entity.entityType}-${entity.normalizedText}`}>
-                <Link
-                  to={`/entities/${encodeURIComponent(entity.normalizedText)}`}
-                  className={styles.chip}
-                >
-                  {entity.entityLabel}
-                  <span className={styles.chipMeta}>
-                    {entity.entityType} · {entity.connectionCount} links
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <Suspense fallback={<SectionFallback />}>
+        <LazyEntityProfileArticles articles={profile.relatedArticles} />
+      </Suspense>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Related clusters</h3>
-        {profile.relatedClusters.length === 0 ? (
-          <p className={styles.empty}>No fusion clusters linked to this entity.</p>
-        ) : (
-          <ul className={styles.list}>
-            {profile.relatedClusters.map((cluster) => (
-              <li key={cluster.id} className={styles.clusterItem}>
-                <span>{cluster.title}</span>
-                <span className={styles.listMeta}>{cluster.confidenceScore}% confidence</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <Suspense fallback={<SectionFallback />}>
+        <LazyEntityProfileRelatedEntities entities={profile.relatedEntities} />
+      </Suspense>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Relationship graph</h3>
-        {graph && graph.nodes.length > 0 ? (
-          <GraphExplorer graph={graph} initialNodeId={entityNodeId} compact />
-        ) : (
-          <p className={styles.empty}>No graph relationships available for this entity.</p>
-        )}
-      </section>
+      <Suspense fallback={<SectionFallback />}>
+        <LazyEntityProfileClusters clusters={profile.relatedClusters} />
+      </Suspense>
+
+      <Suspense fallback={<SectionFallback />}>
+        <LazyEntityProfileSimilar entities={profile.similarEntities} />
+      </Suspense>
+
+      <Suspense fallback={<SectionFallback />}>
+        <LazyEntityProfileGraphSection
+          graphData={profile.graphData}
+          centerNodeId={profile.graphCenterNodeId}
+        />
+      </Suspense>
     </PageContainer>
   )
 }

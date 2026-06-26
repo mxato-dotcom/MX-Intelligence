@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useDataRefresh } from '@/contexts/DataRefreshContext'
 import { ENTITY_TYPES, type EntityType } from '@/intelligence/entities/EntityType'
@@ -20,10 +20,12 @@ import {
   type AggregatedEntity,
   type EntityTypeCount,
 } from '@/services/entityService'
-import { entityDetailPath } from '@/lib/constants'
+import { entityDetailPath, entityProfilePath, ROUTES } from '@/lib/constants'
+import { resolveEntityFromSearch } from '@/services/entityProfileService'
 import styles from './EntitiesPage.module.css'
 
 export function EntitiesPage() {
+  const navigate = useNavigate()
   const { refreshToken, notifyDataRefresh } = useDataRefresh()
   const [backfillStats, setBackfillStats] = useState<BackfillStats | null>(null)
   const [totalEntities, setTotalEntities] = useState(0)
@@ -105,12 +107,28 @@ export function EntitiesPage() {
     }
   }
 
+  const handleSearchSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    const query = searchQuery.trim()
+    if (!query) {
+      return
+    }
+
+    const resolved = await resolveEntityFromSearch(query)
+    if (resolved) {
+      navigate(entityProfilePath(resolved.entityId))
+    }
+  }
+
   return (
     <PageContainer
       title="Entities"
       description="Browse extracted intelligence entities, run backfill, and explore entity coverage."
     >
       <div className={styles.toolbar}>
+        <Link to={ROUTES.ENTITIES_COMPARE} className={styles.compareLink}>
+          Compare Entities
+        </Link>
         <button
           className={styles.cleanupButton}
           type="button"
@@ -218,16 +236,16 @@ export function EntitiesPage() {
               </select>
             </label>
 
-            <label className={styles.filterField}>
+            <form className={styles.filterField} onSubmit={handleSearchSubmit}>
               <span className={styles.filterLabel}>Search entities</span>
               <input
                 className={styles.searchInput}
                 type="search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search by name or keyword"
+                placeholder="Search and press Enter to open profile"
               />
-            </label>
+            </form>
           </div>
 
           {distribution.length > 0 && (
@@ -266,7 +284,7 @@ export function EntitiesPage() {
                       <tr key={`${entity.entityType}-${entity.normalizedText}`} className={styles.row}>
                         <td className={styles.cell}>
                           <Link
-                            to={entityDetailPath(entity.normalizedText)}
+                            to={entityDetailPath(entity.entityType, entity.normalizedText)}
                             className={styles.entityLink}
                           >
                             {entity.displayText}

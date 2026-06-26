@@ -80,6 +80,15 @@
   color: var(--color-text-primary);
 }
 
+.statLink {
+  text-decoration: none;
+  color: inherit;
+}
+
+.statLink:hover .statValueSmall {
+  color: var(--color-accent-hover);
+}
+
 .statSubvalue {
   margin-top: var(--space-xs);
   font-size: 24px;

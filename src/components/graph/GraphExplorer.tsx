@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import type { EntityType } from '@/intelligence/entities/EntityType'
 import {
   articleDetailPath,
   briefDetailPath,
@@ -29,8 +30,9 @@ function nodeRoute(node: GraphNode): string | null {
   }
 
   if (node.type === 'entity') {
+    const entityType = String(node.metadata?.entityType ?? node.sublabel ?? 'Keyword') as EntityType
     const normalized = String(node.metadata?.normalizedText ?? node.label)
-    return entityDetailPath(normalized)
+    return entityDetailPath(entityType, normalized)
   }
 
   return null
