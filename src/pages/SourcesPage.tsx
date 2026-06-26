@@ -35,9 +35,14 @@ export function SourcesPage() {
       title="Sources"
       description="Manage intelligence sources for automated monitoring and ingestion."
       actions={
-        <Link to={ROUTES.SOURCES_NEW} className={styles.newButton}>
-          New source
-        </Link>
+        <div className={styles.headerActions}>
+          <Link to={ROUTES.CONNECTORS} className={styles.browseButton}>
+            Browse Connectors
+          </Link>
+          <Link to={ROUTES.SOURCES_NEW} className={styles.newButton}>
+            New Source
+          </Link>
+        </div>
       }
     >
       {isLoading && <div className={styles.stateBox}>Loading sources…</div>}

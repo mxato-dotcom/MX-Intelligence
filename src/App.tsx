@@ -6,6 +6,7 @@ import { ROUTES } from '@/lib/constants'
 import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
 import { CreateArticlePage } from '@/pages/CreateArticlePage'
+import { ConnectorsPage } from '@/pages/ConnectorsPage'
 import { CreateSourcePage } from '@/pages/CreateSourcePage'
 import { CreateVideoPage } from '@/pages/CreateVideoPage'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -36,6 +37,7 @@ export function App() {
             <Route path={ROUTES.VIDEOS_NEW} element={<CreateVideoPage />} />
             <Route path="/videos/:id" element={<VideoDetailPage />} />
             <Route path={ROUTES.SOURCES} element={<SourcesPage />} />
+            <Route path={ROUTES.CONNECTORS} element={<ConnectorsPage />} />
             <Route path={ROUTES.SOURCES_NEW} element={<CreateSourcePage />} />
             <Route path="/sources/:id/edit" element={<EditSourcePage />} />
             <Route path="/sources/:id" element={<SourceDetailPage />} />

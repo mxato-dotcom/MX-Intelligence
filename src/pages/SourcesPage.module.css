@@ -1,3 +1,30 @@
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.browseButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.browseButton:hover {
+  background: var(--color-bg-base);
+  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
+}
+
 .newButton {
   display: inline-flex;
   align-items: center;

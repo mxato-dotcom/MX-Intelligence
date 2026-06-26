@@ -14,11 +14,6 @@ import {
 } from '@/types/source'
 import styles from './SourceForm.module.css'
 
-interface SourceFormProps {
-  mode: 'create' | 'edit'
-  source?: Source
-}
-
 function sourceToForm(source: Source): CreateSourceInput {
   return {
     name: source.name,
@@ -34,12 +29,30 @@ function sourceToForm(source: Source): CreateSourceInput {
   }
 }
 
-export function SourceForm({ mode, source }: SourceFormProps) {
+interface SourceFormProps {
+  mode: 'create' | 'edit'
+  source?: Source
+  defaultSourceType?: string
+}
+
+function createInitialForm(source?: Source, defaultSourceType?: string): CreateSourceInput {
+  if (source) {
+    return sourceToForm(source)
+  }
+
+  const base = { ...DEFAULT_SOURCE_VALUES }
+
+  if (defaultSourceType && SOURCE_TYPES.includes(defaultSourceType as typeof SOURCE_TYPES[number])) {
+    base.source_type = defaultSourceType
+  }
+
+  return base
+}
+
+export function SourceForm({ mode, source, defaultSourceType }: SourceFormProps) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState<CreateSourceInput>(
-    source ? sourceToForm(source) : { ...DEFAULT_SOURCE_VALUES },
-  )
+  const [form, setForm] = useState<CreateSourceInput>(() => createInitialForm(source, defaultSourceType))
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
