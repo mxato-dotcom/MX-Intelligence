@@ -62,17 +62,6 @@ export interface IntelligenceDailyBrief {
   payload: IntelligenceBriefPayload
 }
 
-export interface BriefGenerationInput {
-  articles: import('@/types/article').Article[]
-  clusters: import('@/intelligence/fusion/FusionCluster').IntelligenceCluster[]
-  entitySummaries: Array<{
-    entityType: EntityType
-    displayText: string
-    mentionCount: number
-    articleCount: number
-  }>
-}
-
 export interface BriefGenerationResult {
   title: string
   summary: string
@@ -83,10 +72,6 @@ export interface BriefGenerationResult {
   clusterCount: number
   entityCount: number
   payload: IntelligenceBriefPayload
-}
-
-export interface BriefGeneratorProvider {
-  generate(input: BriefGenerationInput): BriefGenerationResult
 }
 
 export const BRIEF_SECTION_ORDER: BriefSectionId[] = [

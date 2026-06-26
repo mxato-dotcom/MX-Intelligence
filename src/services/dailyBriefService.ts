@@ -4,7 +4,8 @@ import type {
   IntelligenceDailyBrief,
 } from '@/intelligence/brief/BriefTypes'
 import { isEntityType } from '@/intelligence/entities/EntityType'
-import { briefEngine } from '@/intelligence/brief/BriefEngine'
+import { briefEngine, BriefEngine } from '@/intelligence/brief/BriefEngine'
+import type { BriefGeneratorProvider } from '@/intelligence/brief/providers/BriefGeneratorProvider'
 import { supabase } from '@/lib/supabase'
 import { isMissingColumnError, isMissingTableError } from '@/lib/supabaseErrors'
 import { safeString } from '@/lib/safeString'
@@ -110,8 +111,11 @@ async function queryLatestBriefRow(): Promise<DailyBriefRow | null> {
   throw byGeneratedAt.error
 }
 
-export async function generateAndStoreDailyBrief(): Promise<IntelligenceDailyBrief | null> {
-  const generated = await briefEngine.buildGenerationResult()
+export async function generateAndStoreDailyBrief(
+  provider?: BriefGeneratorProvider,
+): Promise<IntelligenceDailyBrief | null> {
+  const engine = provider ? new BriefEngine(provider) : briefEngine
+  const generated = await engine.buildGenerationResult()
   const now = new Date().toISOString()
 
   const { data, error } = await supabase
